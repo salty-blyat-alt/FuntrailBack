@@ -21,7 +21,7 @@ class ProductFactory extends Factory
             'quantity' => $this->faker->numberBetween(1, 100),
             'price' => $this->faker->randomFloat(2, 5, 500),
             'restaurant_id' => \App\Models\Restaurant::factory(),
-            'img' => $this->faker->imageUrl(),
+            'image' => $this->faker->imageUrl(),
         ];
     }
 }

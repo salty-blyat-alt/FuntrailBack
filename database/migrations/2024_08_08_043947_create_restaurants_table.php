@@ -12,13 +12,16 @@ return new class extends Migration {
     {
         Schema::create('restaurants', function (Blueprint $table) {
             $table->id(); // Primary key for the hotels table
+            $table->integer('user_id'); // Hotel name
             $table->string('name'); // Hotel name
             $table->string('province'); // Province or location
             $table->text('address'); // Address of the hotel
-            $table->text('description'); // Description of the hotel
-            $table->string('phone_number'); // Contact phone number
+            $table->text('description')->nullable(); // Description of the hotel
+            $table->string('phone_number')->nullable(); // Contact phone number
+            $table->string('image'); // profile
             $table->time('open_at'); // Opening time
             $table->time('close_at'); // Closing time
+            
             $table->timestamps(); // Adds created_at and updated_at columns
         });
     }

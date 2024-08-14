@@ -19,6 +19,7 @@ class RoomTypeFactory extends Factory
         return [
             'room_type' => $this->faker->word,
             'price' => $this->faker->randomFloat(2, 50, 500),
+            'image' => $this->faker->imageUrl(640, 480, 'room', true),
         ];
     }
 }

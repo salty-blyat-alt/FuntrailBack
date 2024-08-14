@@ -15,10 +15,12 @@ class Restaurant extends Model
      */
     protected $fillable = [
         'name',
+        'user_id',
         'province',
         'address',
         'description',
         'phone_number',
+        'image',
         'open_at',
         'close_at',
     ];
@@ -44,6 +46,10 @@ class Restaurant extends Model
     /**
      * Get the orders for the restaurant.
      */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
     public function orders()
     {
         return $this->hasMany(Order::class);

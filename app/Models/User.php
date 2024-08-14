@@ -16,7 +16,17 @@ class User extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = ['first_name', 'last_name', 'email', 'password', 'user_type', 'province', 'balance', 'phone_number', 'profile_img'];
+    protected $fillable = [
+        'first_name', 
+        'last_name', 
+        'email', 
+        'password', 
+        'user_type', 
+        'province', 
+        'balance', 
+        'phone_number', 
+        'profile_img'
+    ];
 
     /**
      * The attributes that should be hidden for arrays.
@@ -24,7 +34,14 @@ class User extends Model
      * @var array<int, string>
      */
     protected $hidden = ['password', 'remember_token'];
-
+    public function hotels()
+    {
+        return $this->hasMany(Hotel::class);
+    }
+    public function restaurants()
+    {
+        return $this->hasMany(Restaurant::class);
+    }
     /**
      * The attributes that should be cast to native types.
      *

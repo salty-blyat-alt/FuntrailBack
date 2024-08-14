@@ -13,7 +13,17 @@ class Hotel extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = ['name', 'province', 'address', 'description', 'room_available', 'phone_number', 'open_at', 'close_at'];
+    protected $fillable = [
+        'name', 
+        'user_id',
+        'province', 
+        'address', 
+        'description', 
+        'room_available', 
+        'phone_number', 
+        'image',
+        'open_at', 
+        'close_at'];
 
     /**
      * The attributes that should be cast to native types.
@@ -31,5 +41,9 @@ class Hotel extends Model
     public function bookings()
     {
         return $this->hasMany(Booking::class);
+    }
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

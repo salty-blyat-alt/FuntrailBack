@@ -18,7 +18,7 @@ class Product extends Model
         'quantity',
         'price',
         'restaurant_id',
-        'img',
+        'image',
     ];
 
     /**

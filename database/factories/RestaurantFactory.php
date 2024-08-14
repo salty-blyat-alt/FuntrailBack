@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -16,14 +17,17 @@ class RestaurantFactory extends Factory
      */
     public function definition(): array
     {
+        $user = User::inRandomOrder()->first();
         return [
             'name' => $this->faker->company,
             'province' => $this->faker->state,
+            'user_id' => $user ? $user->id : null, 
             'address' => $this->faker->address,
             'description' => $this->faker->paragraph,
             'phone_number' => $this->faker->phoneNumber,
             'open_at' => $this->faker->time,
             'close_at' => $this->faker->time,
+            'image' => $this->faker->imageUrl(640, 480, 'restaurant', true),
         ];
     }
 }

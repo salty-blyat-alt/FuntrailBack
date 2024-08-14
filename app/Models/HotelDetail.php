@@ -13,7 +13,7 @@ class HotelDetail extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = ['room_type_id', 'hotel_id', 'is_available'];
+    protected $fillable = ['room_type_id', 'hotel_id','image', 'is_available'];
 
     /**
      * The attributes that should be cast to native types.
@@ -21,7 +21,7 @@ class HotelDetail extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'is_available' => 'boolean', // Ensures is_available is treated as a boolean
+        'is_available' => 'boolean',  
     ];
 
     /**

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -14,10 +15,13 @@ class HotelFactory extends Factory
      *
      * @return array<string, mixed>
      */
+
     public function definition(): array
     {
+        $user = User::inRandomOrder()->first();
         return [
             'name' => $this->faker->company,
+            'user_id' => $user ? $user->id : null,  
             'province' => $this->faker->state,
             'address' => $this->faker->address,
             'description' => $this->faker->paragraph,
@@ -25,6 +29,7 @@ class HotelFactory extends Factory
             'phone_number' => $this->faker->phoneNumber,
             'open_at' => $this->faker->time,
             'close_at' => $this->faker->time,
+            'image' => $this->faker->imageUrl(640, 480, 'hotel', true), // Generates a placeholder image URL        ];
         ];
     }
 }

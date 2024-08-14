@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('hotel_details', function (Blueprint $table) {
             $table->foreignId('room_type_id')->constrained()->onDelete('cascade'); // Foreign key to room_types table
             $table->foreignId('hotel_id')->constrained()->onDelete('cascade'); // Foreign key to room_types table
+            $table->string('image')->nullable(); // Foreign key to room_types table
             $table->boolean('is_available'); // Availability status (true/false)
             $table->timestamps(); // Adds created_at and updated_at columns
         });
