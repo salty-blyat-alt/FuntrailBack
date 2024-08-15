@@ -15,13 +15,13 @@ return new class extends Migration {
             $table->string('first_name');
             $table->string('last_name');
             $table->string('email')->unique();
+            $table->float('balance')->default(0);
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();
             $table->enum('user_type', ['customer', 'hotel', 'restaurant'])->default('customer');
-            $table->string('province')->nullable();
-            $table->float('balance')->default(0.0);
+            $table->foreignId('province_id')->constrained()->onDelete('cascade'); // Province or location with foreign key            $table->float('balance')->default(0.0);
             $table->string('phone_number')->nullable();
             $table->string('profile_img')->nullable();
         });

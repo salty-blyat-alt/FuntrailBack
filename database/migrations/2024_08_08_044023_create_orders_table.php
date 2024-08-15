@@ -14,7 +14,8 @@ return new class extends Migration {
             $table->id(); // Primary key for the orders table
             $table->foreignId('restaurant_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->decimal('sum_total', 10, 2);
+            $table->float('sum_total');
+            
             $table->timestamps();
         });
     }

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Province;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -17,10 +18,11 @@ class RestaurantFactory extends Factory
      */
     public function definition(): array
     {
+        $province = Province::inRandomOrder()->first();
         $user = User::inRandomOrder()->first();
         return [
             'name' => $this->faker->company,
-            'province' => $this->faker->state,
+            'province_id' => $province ? $province->id : null, 
             'user_id' => $user ? $user->id : null, 
             'address' => $this->faker->address,
             'description' => $this->faker->paragraph,

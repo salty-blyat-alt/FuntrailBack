@@ -16,7 +16,7 @@ class Restaurant extends Model
     protected $fillable = [
         'name',
         'user_id',
-        'province',
+        'province_id',
         'address',
         'description',
         'phone_number',
@@ -53,5 +53,9 @@ class Restaurant extends Model
     public function orders()
     {
         return $this->hasMany(Order::class);
+    }
+    public function province()
+    {
+        return $this->belongsTo(Province::class, 'province_id', 'id');    
     }
 }

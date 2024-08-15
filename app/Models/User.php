@@ -22,7 +22,7 @@ class User extends Model
         'email', 
         'password', 
         'user_type', 
-        'province', 
+        'province_id', 
         'balance', 
         'phone_number', 
         'profile_img'
@@ -41,6 +41,10 @@ class User extends Model
     public function restaurants()
     {
         return $this->hasMany(Restaurant::class);
+    }
+    public function province()
+    {
+        return $this->belongsTo(Province::class, 'province_id', 'id');    
     }
     /**
      * The attributes that should be cast to native types.

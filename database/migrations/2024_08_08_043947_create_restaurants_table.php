@@ -14,8 +14,8 @@ return new class extends Migration {
             $table->id(); // Primary key for the hotels table
             $table->integer('user_id'); // Hotel name
             $table->string('name'); // Hotel name
-            $table->string('province'); // Province or location
-            $table->text('address'); // Address of the hotel
+            $table->foreignId('province_id')->constrained()->onDelete('cascade'); // Province or location with foreign key            $table->text('address'); // Address of the hotel
+            $table->string('address'); // Province or location with foreign key            $table->text('address'); // Address of the hotel
             $table->text('description')->nullable(); // Description of the hotel
             $table->string('phone_number')->nullable(); // Contact phone number
             $table->string('image'); // profile

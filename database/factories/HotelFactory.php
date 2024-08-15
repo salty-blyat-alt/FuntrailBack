@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Province;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -18,11 +19,12 @@ class HotelFactory extends Factory
 
     public function definition(): array
     {
+        $province = Province::inRandomOrder()->first();
         $user = User::inRandomOrder()->first();
         return [
             'name' => $this->faker->company,
             'user_id' => $user ? $user->id : null,  
-            'province' => $this->faker->state,
+            'province_id' => $province ? $province->id : null,           
             'address' => $this->faker->address,
             'description' => $this->faker->paragraph,
             'room_available' => $this->faker->numberBetween(0, 100),

@@ -16,7 +16,7 @@ class Hotel extends Model
     protected $fillable = [
         'name', 
         'user_id',
-        'province', 
+        'province_id', 
         'address', 
         'description', 
         'room_available', 
@@ -45,5 +45,9 @@ class Hotel extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+    public function province()
+    {
+        return $this->belongsTo(Province::class, 'province_id', 'id');    
     }
 }

@@ -7,6 +7,38 @@ use Illuminate\Http\Request;
 
 class RestaurantController extends Controller
 {
+    public function popular($limit = 10)
+{
+    // Get the top $limit restaurants with the highest order count
+    $response = Restaurant::withCount('orders')
+        ->orderBy('orders_count', 'desc')
+        ->take($limit)
+        ->get();
+
+    return response()->json($response);
+}
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     /**
      * Display a listing of the resource.
      */
@@ -15,7 +47,8 @@ class RestaurantController extends Controller
         $restaurants = Restaurant::all();
         return response()->json($restaurants);
     }
-
+ 
+ 
     /**
      * Store a newly created resource in storage.
      */
