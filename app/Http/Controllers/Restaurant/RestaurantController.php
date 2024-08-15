@@ -1,4 +1,5 @@
-<?php 
+<?php
+
 namespace App\Http\Controllers\Restaurant;
 
 use App\Http\Controllers\Controller;
@@ -8,67 +9,73 @@ use Illuminate\Http\Request;
 class RestaurantController extends Controller
 {
     public function popular($limit = 10)
-{
-    // Get the top $limit restaurants with the highest order count
-    $response = Restaurant::withCount('orders')
-        ->orderBy('orders_count', 'desc')
-        ->take($limit)
-        ->get();
+    {
+        // Get the top $limit restaurants with the highest order count
+        $response = Restaurant::withCount('orders')
+            ->orderBy('orders_count', 'desc')
+            ->take($limit)
+            ->get();
 
-    return response()->json($response);
-}
-
- 
+        return response()->json($response);
+    }
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    /**
-     * Display a listing of the resource.
-     */
+    
     public function index()
     {
         $restaurants = Restaurant::all();
         return response()->json($restaurants);
     }
- 
- 
-    /**
-     * Store a newly created resource in storage.
-     */
+
+
+//    tested DONE WORK
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'user_id' => 'required|exists:users,id',
-            'province' => 'required|string|max:255',
-            'address' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'phone_number' => 'nullable|string|max:15',
-            'image' => 'nullable|url',
-            'open_at' => 'required|date_format:H:i:s',
-            'close_at' => 'required|date_format:H:i:s',
-        ]);
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'user_id' => 'required|exists:users,id',
+                'province_id' => 'required|integer|exists:provinces,id',
+                'address' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'phone_number' => 'nullable|string|max:15',
+                'image' => 'nullable|file|image|mimes:jpeg,png,jpg',
+                'open_at' => 'required|date_format:H:i',
+                'close_at' => 'required|date_format:H:i',
+            ]);
 
-        $restaurant = Restaurant::create($request->all());
+            if ($request->hasFile('image')) {
+                // Store the image and get the path
+                $imagePath = $request->file('image')->store('restaurants', 'public');
+                $validatedData['image'] = $imagePath; // Add image path to validated data
+            } else {
+                $validatedData['image'] = null; // Ensure image field is null if no file is uploaded
+            }
 
-        return response()->json($restaurant, 201);
+
+            $restaurant = Restaurant::create($request->all());
+
+
+
+
+            return response()->json($restaurant, 201);
+
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Return validation error response
+            return response()->json([
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            // Handle general exceptions and return a server error response
+            return response()->json([
+                'error' => 'An unexpected error occurred.',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

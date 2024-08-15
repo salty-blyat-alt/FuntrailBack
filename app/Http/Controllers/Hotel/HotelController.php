@@ -27,8 +27,7 @@ class HotelController extends Controller
     }
 
     // tested  DONE WORK
-    public function store(Request $request)
-{
+    public function store(Request $request) {
     try {
         // Validate the request data
         $validatedData = $request->validate([
@@ -39,10 +38,20 @@ class HotelController extends Controller
             'description' => 'nullable|string',
             'room_available' => 'required|integer|min:0',
             'phone_number' => 'required|string',
-            'image' => 'nullable|url',
+            'image' => 'nullable|file|image|mimes:jpeg,png,jpg',
             'open_at' => 'required|date_format:H:i',
             'close_at' => 'required|date_format:H:i|after:open_at',
         ]);
+
+        
+        if ($request->hasFile('image')) {
+            // Store the image and get the path
+            $imagePath = $request->file('image')->store('hotels', 'public');
+            $validatedData['image'] = $imagePath; // Add image path to validated data
+        } else {
+            $validatedData['image'] = null; // Ensure image field is null if no file is uploaded
+        }
+
 
         // Create the hotel record
         $hotel = Hotel::create($validatedData);
