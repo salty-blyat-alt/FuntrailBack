@@ -27,4 +27,10 @@ class RoomType extends Model
     protected $casts = [
         'price' => 'decimal:2', // Ensure the price is cast to a decimal with 2 decimal places
     ];
+    public function hotelDetails()
+    {
+        return $this->hasMany(HotelDetail::class);
+    }
+    
+
 }

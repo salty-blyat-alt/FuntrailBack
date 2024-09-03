@@ -2,47 +2,49 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Province;
 use Illuminate\Http\Request;
 
 class ProvinceController extends Controller
 {
+    public function popular($limit = 10)
+{
+    $provinces = Province::withCount('hotels')
+        ->withCount('restaurants') 
+        ->orderBy('hotels_count', 'desc') 
+        ->orderBy('restaurants_count', 'desc') 
+        ->take($limit)
+        ->get();
+
+    // Return the provinces as a JSON response
+    return response()->json($provinces);
+}
+
+
+
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        //
-    }
+        // Fetch all provinces
+        $provinces = Province::all();
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
+        // Return a JSON response with the provinces
+        return response()->json($provinces);
     }
-
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
-        //
-    }
+        // Find the province by ID
+        $province = Province::find($id);
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
+        // Check if province exists
+        if (!$province) {
+            return response()->json(['message' => 'Province not found'], 404);
+        }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        // Return the province data
+        return response()->json($province);
     }
 }

@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 
 class RestaurantController extends Controller
 {
-    public function popular($limit = 10)
+    public function popular($limit = 20)
     {
         // Get the top $limit restaurants with the highest order count
         $response = Restaurant::withCount('orders')
@@ -18,11 +18,7 @@ class RestaurantController extends Controller
 
         return response()->json($response);
     }
-
-
-
-
-
+ 
     
     public function index()
     {
@@ -31,12 +27,12 @@ class RestaurantController extends Controller
     }
 
 
-//    tested DONE WORK
+    //  tested DONE WORK
     public function store(Request $request)
     {
         try {
             $request->validate([
-                'name' => 'required|string|max:255',
+                'name' => 'required|string',
                 'user_id' => 'required|exists:users,id',
                 'province_id' => 'required|integer|exists:provinces,id',
                 'address' => 'required|string|max:255',
@@ -48,11 +44,10 @@ class RestaurantController extends Controller
             ]);
 
             if ($request->hasFile('image')) {
-                // Store the image and get the path
                 $imagePath = $request->file('image')->store('restaurants', 'public');
-                $validatedData['image'] = $imagePath; // Add image path to validated data
+                $validatedData['image'] = $imagePath;
             } else {
-                $validatedData['image'] = null; // Ensure image field is null if no file is uploaded
+                $validatedData['image'] = null; 
             }
 
 

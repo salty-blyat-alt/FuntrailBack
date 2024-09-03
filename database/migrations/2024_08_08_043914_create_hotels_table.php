@@ -11,19 +11,19 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('hotels', function (Blueprint $table) {
-            $table->id(); // Primary key for the hotels table
-            $table->string('name'); // Hotel name
-            $table->integer('user_id'); // track owner acc 
-            $table->foreignId('province_id')->constrained()->onDelete('cascade'); // Province or location with foreign key            $table->text('address'); // Address of the hotel
-            $table->text('address'); // Province or location with foreign key            $table->text('address'); // Address of the hotel
-            $table->text('description')->nullable(); // Description of the hotel
-            $table->integer('room_available'); // Number of rooms available
-            $table->string('phone_number')->nullable(); // Contact phone number
-            $table->string('image'); // Closing time
-            $table->time('open_at'); // Opening time
-            $table->time('close_at'); // Closing time
+            $table->id(); 
+            $table->string('name');  
+            $table->integer('user_id');  
+            $table->foreignId('province_id')->constrained()->onDelete('cascade'); 
+            $table->text('address');  
+            $table->text('description')->nullable(); 
+            $table->integer('room_available');  
+            $table->string('phone_number')->nullable();  
+            $table->string('thumbnail');
+            $table->time('open_at');  
+            $table->time('close_at'); 
 
-            $table->timestamps(); // Adds created_at and updated_at columns
+            $table->timestamps();  
         });
     }
 

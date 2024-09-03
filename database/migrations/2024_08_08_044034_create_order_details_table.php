@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('order_details', function (Blueprint $table) {
             $table->foreignId('order_id')->constrained()->onDelete('cascade'); // Foreign key to orders table
             $table->foreignId('product_id')->constrained()->onDelete('cascade'); // Foreign key to products table
-            $table->integer('quantity'); // Quantity of the product user bought
+            $table->integer('quantity'); 
  
             $table->timestamps();
         });

@@ -23,13 +23,13 @@ class UserFactory extends Factory
             'last_name' => $this->faker->lastName,
             'email' => $this->faker->unique()->safeEmail,
             'email_verified_at' => $this->faker->optional()->dateTime(),
-            'password' => bcrypt('password'), // Use bcrypt for hashed password
+            'password' => bcrypt('password'),  
             'remember_token' => $this->faker->optional()->word,
             'user_type' => $this->faker->randomElement(['customer', 'hotel', 'restaurant']), // Ensure only valid types
-            'province_id' => $province ? $province->id : null,// Generates a random existing province ID
-            'balance' => $this->faker->randomFloat(2, 0, 1000), // Ensure decimal value with 2 decimal places
-            'phone_number' => $this->faker->optional()->phoneNumber(), // Nullable
-            'profile_img' => $this->faker->optional()->imageUrl(), // Nullable
+            'province_id' => $province ? $province->id : 1,
+            'balance' => $this->faker->randomFloat(2, 0, 1000),  
+            'phone_number' => $this->faker->optional()->phoneNumber(), 
+            'profile_img' => null, 
         ];
     }
 }
