@@ -4,10 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -46,9 +44,8 @@ class AuthController extends Controller
                 'password' => Hash::make($validatedData['password'])
             ]);
 
-
             // Generate a Sanctum token
-            $token = $user->createToken('auth_token')->plainTextToken;
+            $token = $user->createToken($user->first_name . ' ' . $user->last_name)->plainTextToken;
 
             return $this->successResponse([
                 'message' => 'User created successfully',
@@ -65,43 +62,44 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         try {
-            // Validate request data
-            $request->validate(([
-                'email'         => 'required|email',
-                'password'         => 'required|string'
-            ]));
-
-            // Attempt to find the user by email
+            
+            $request->validate([
+                'email' => 'required|email|exists:users,email',
+                'password' => 'required|string',
+            ]);
+            
             $user = User::where('email', $request->email)->first();
 
             if (!$user || !Hash::check($request->password, $user->password)) {
                 return $this->errorResponse('Email or password is not correct', 422);
             }
 
+            $name = $user->first_name . ' ' . $user->last_name;
 
-            $token = $user->createToken($user->name . 'Auth-Token')->plainTextToken;
+            $token = $user->createToken($name)->plainTextToken;
 
-
-            return $this->errorResponse([
+            return $this->successResponse([
                 'user' => $user,
                 'access_token' => $token,
-                'token_type' => 'Bearer'
-             ], 200);
+                'token_type' => 'Bearer' ]);
+        } catch (\Illuminate\Validation\ValidationException $e) { 
+            return $this->errorResponse($e->errors(), 422);
         } catch (\Exception $e) {
-            // Log the error and return a generic error response
+            
             Log::error('Error during login: ' . $e->getMessage());
-            return $this->errorResponse(['message' => 'Login failed due to a server error'], 500);
+            return $this->errorResponse('An error occurred during login. Please try again later.', 500);
         }
     }
 
 
 
-    public function logout(Request $request)
-    {
-        $request->user()->currentAccessToken()->delete();
 
-        return response()->json([
-            'message' => 'User logged out successfully'
-        ], 200);
+    public function logout(Request $request)
+    {  
+        $user = $request->user()->tokens()->delete();
+        if(!$user){
+            return $this->errorResponse('Unauthicated', 401);
+        } 
+      return $this->successResponse(['message' => 'User logged out successfully'], 200);
     }
 }
