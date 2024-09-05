@@ -22,10 +22,10 @@ class Hotel extends Model
         'user_id', 
         'province_id',
         'address',
-        'description',
-        'room_available',
+        'description', 
         'phone_number',
-        'image',
+        'thumbnail',
+        'images',
         'open_at',
         'close_at'
     ];
@@ -42,12 +42,7 @@ class Hotel extends Model
 
     /**
      * Get the bookings for the hotel.
-     */
-    public function bookings()
-    {
-        return $this->hasMany(Booking::class);
-    }
-
+     */  
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -56,11 +51,5 @@ class Hotel extends Model
     public function province()
     {
         return $this->belongsTo(Province::class, 'province_id', 'id');
-    }
-    
-    public function hotelDetails()
-    {
-        return $this->hasMany(HotelDetail::class);
-    }
-    
+    } 
 }

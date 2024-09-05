@@ -24,14 +24,17 @@ class HotelFactory extends Factory
         return [
             'name' => $this->faker->company,
             'user_id' => $user ? $user->id : null,  
-            'province_id' => $province ? $province->id : null,           
+            'province_id' => $province ? $province->id : 1,           
             'address' => $this->faker->address,
             'description' => $this->faker->paragraph,
             'room_available' => $this->faker->numberBetween(0, 100),
             'phone_number' => $this->faker->phoneNumber,
             'open_at' => $this->faker->time,
             'close_at' => $this->faker->time,
-            'image' => $this->faker->imageUrl(640, 480, 'hotel', true), // Generates a placeholder image URL        ];
+            'images' => json_encode(array_map(function() {
+                return $this->faker->imageUrl(640, 480, 'hotel', true);
+            }, range(1, 5))),
+            'thumbnail' => $this->faker->imageUrl(640, 480, 'hotel', true),  
         ];
     }
 }

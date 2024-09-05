@@ -14,11 +14,13 @@ class Booking extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'hotel_id',
+        'id',
+        'room_id',
         'user_id',
         'check_in',
         'check_out',
-        'sum_total',
+        'date',
+        'total',
     ];
 
     /**
@@ -29,15 +31,15 @@ class Booking extends Model
     protected $casts = [
         'check_in' => 'datetime:H:i:s',
         'check_out' => 'datetime:H:i:s',
-        'sum_total' => 'decimal:2', // Ensure the sum_total is cast to a decimal with 2 decimal places
+        'total' => 'decimal:2', 
     ];
 
     /**
      * Get the hotel that owns the booking.
      */
-    public function hotel()
+    public function room()
     {
-        return $this->belongsTo(Hotel::class);
+        return $this->belongsTo(Room::class);
     }
 
     /**

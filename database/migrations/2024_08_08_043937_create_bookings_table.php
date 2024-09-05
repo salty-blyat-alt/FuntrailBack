@@ -12,14 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('bookings', function (Blueprint $table) {
-            $table->id(); // Primary key for the bookings table
-            $table->foreignId('hotel_id')->constrained()->onDelete('cascade'); // Foreign key to hotels table
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Foreign key to users table
-            $table->date('check_in'); // Check-in date
-            $table->date('check_out'); // Check-out date
-            $table->decimal('sum_total', 10, 2); // Total amount for the booking (e.g., 99999999.99)
-
-            $table->timestamps(); // Adds created_at and updated_at columns
+            $table->integer('id')->unsigned();  
+            $table->foreignId('room_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->time('check_in');
+            $table->time('check_out');
+            $table->date('date');
+            $table->decimal('total', 8, 2);
+            $table->timestamps();
         });
     }
 

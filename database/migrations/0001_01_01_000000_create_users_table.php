@@ -12,16 +12,15 @@ return new class extends Migration {
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('first_name');
-            $table->string('last_name');
+            $table->string('username'); 
             $table->string('email')->unique();
             $table->float('balance')->default(0);
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
             $table->enum('user_type', ['customer', 'hotel', 'restaurant'])->default('customer');
-            $table->foreignId('province_id')->nullable()->constrained()->onDelete('cascade');
-            $table->string('phone_number')->nullable();
+            $table->foreignId('province_id')->constrained()->onDelete('cascade');
+            $table->string('phone_number');
             $table->string('profile_img')->nullable();
             $table->timestamps();
         });

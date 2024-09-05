@@ -33,8 +33,7 @@ abstract class Controller
     public function registerRules()
     {
         return [
-            'first_name'    => 'required|string',
-            'last_name'     => 'required|string',
+            'username'    => 'required|string',
             'email'         => 'required|string|email|unique:users',
             'password'      => 'required|string|min:8',
             'user_type'     => 'required|string',

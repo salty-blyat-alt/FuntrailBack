@@ -9,6 +9,6 @@ class RestaurantCommentsTableSeeder extends Seeder
 {
     public function run()
     {
-        RestaurantComment::factory()->count(50)->create();
+        RestaurantComment::factory()->count(10)->create();
     }
 }

@@ -5,18 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class RoomType extends Model
+class Commission extends Model
 {
     use HasFactory;
+
     /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
      */
     protected $fillable = [
-        'room_type',
-        'image',
-        'price',
+        'user_id',
+        'commission_rate',
+        'total_commision',
     ];
 
     /**
@@ -25,12 +26,16 @@ class RoomType extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'price' => 'decimal:2', // Ensure the price is cast to a decimal with 2 decimal places
+        'user_id' => 'int',
+        'commission_rate' => 'int',
+        'total_commision' => 'float',
     ];
-    public function hotelDetails()
-    {
-        return $this->hasMany(HotelDetail::class);
-    }
-    
 
+    /**
+     * Get the products for the restaurant.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

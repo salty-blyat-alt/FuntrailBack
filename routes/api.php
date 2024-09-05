@@ -15,12 +15,7 @@ Route::prefix('auth')->group(function () {
     Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 });
 
-Route::middleware('auth:sanctum')->prefix('create')->group(function () {
-    Route::post('hotel', [HotelController::class, 'store']);
-    Route::post('restaurant', [RestaurantController::class, 'store']);
-});
-
-Route::middleware('auth:sanctum')->prefix('popular')->group(function () {
+Route::prefix('popular')->group(function () {
     // get popular restaurant by amount of order records
     Route::get('restaurants', [RestaurantController::class, 'popular']);
     // get popular hotels by the amount of bookings records
@@ -29,8 +24,14 @@ Route::middleware('auth:sanctum')->prefix('popular')->group(function () {
     Route::get('provinces', [ProvinceController::class, 'popular']);
 });
 
-
-Route::middleware('auth:sanctum')->prefix('search')->group(function () {
+Route::prefix('search')->group(function () {
     Route::get('hotel', [HotelController::class, 'search']);
     Route::get('restaurant', [RestaurantController::class, 'search']);
+});
+
+
+
+Route::middleware('auth:sanctum')->prefix('create')->group(function () {
+    Route::post('hotel', [HotelController::class, 'store']);
+    Route::post('restaurant', [RestaurantController::class, 'store']);
 });

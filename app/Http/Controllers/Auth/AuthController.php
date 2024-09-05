@@ -33,9 +33,8 @@ class AuthController extends Controller
             }
 
 
-            $user = User::create([
-                'first_name' => $validatedData['first_name'],
-                'last_name' => $validatedData['last_name'],
+            $user = User::create([ 
+                'username' => $validatedData['username'],
                 'email' => $validatedData['email'],
                 'user_type' => $validatedData['user_type'],
                 'province_id' => $validatedData['province_id'],
@@ -45,7 +44,7 @@ class AuthController extends Controller
             ]);
 
             // Generate a Sanctum token
-            $token = $user->createToken($user->first_name . ' ' . $user->last_name)->plainTextToken;
+            $token = $user->createToken($user->username)->plainTextToken;
 
             return $this->successResponse([
                 'message' => 'User created successfully',
@@ -64,6 +63,7 @@ class AuthController extends Controller
         try {
             
             $request->validate([
+                'username' => 'required|string|exists:users,username',
                 'email' => 'required|email|exists:users,email',
                 'password' => 'required|string',
             ]);
@@ -73,10 +73,8 @@ class AuthController extends Controller
             if (!$user || !Hash::check($request->password, $user->password)) {
                 return $this->errorResponse('Email or password is not correct', 422);
             }
-
-            $name = $user->first_name . ' ' . $user->last_name;
-
-            $token = $user->createToken($name)->plainTextToken;
+ 
+            $token = $user->createToken($user->username)->plainTextToken;
 
             return $this->successResponse([
                 'user' => $user,

@@ -17,8 +17,7 @@ class User extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'first_name', 
-        'last_name', 
+        'username',  
         'email', 
         'password', 
         'user_type', 
@@ -34,17 +33,27 @@ class User extends Model
      * @var array<int, string>
      */
     protected $hidden = ['password', 'remember_token'];
+
     public function hotels()
     {
         return $this->hasMany(Hotel::class);
     }
+
+
     public function restaurants()
     {
         return $this->hasMany(Restaurant::class);
     }
-    public function province()
+
+
+    public function provinces()
     {
         return $this->belongsTo(Province::class, 'province_id', 'id');    
+    }
+
+    public function bookings()
+    {
+        return $this->belongsTo(Booking::class);    
     }
     /**
      * The attributes that should be cast to native types.

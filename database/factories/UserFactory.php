@@ -19,8 +19,7 @@ class UserFactory extends Factory
     {
         $province = Province::inRandomOrder()->first();
         return [
-            'first_name' => $this->faker->firstName,
-            'last_name' => $this->faker->lastName,
+            'username' => $this->faker->firstName, 
             'email' => $this->faker->unique()->safeEmail,
             'email_verified_at' => $this->faker->optional()->dateTime(),
             'password' => bcrypt('password'),  

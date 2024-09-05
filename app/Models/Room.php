@@ -5,15 +5,21 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class HotelDetail extends Model
+class Room extends Model
 {
     use HasFactory;
+
     /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
      */
-    protected $fillable = ['room_type_id', 'hotel_id','image', 'is_available'];
+    protected $fillable = [
+        'hotel_id',
+        'room_type',
+        'price',
+        'status',
+    ];
 
     /**
      * The attributes that should be cast to native types.
@@ -21,23 +27,17 @@ class HotelDetail extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'is_available' => 'boolean',  
+        'hotel_id' => 'int',
+        'room_type' => 'string',
+        'price' => 'float',
+        'status' => 'string',
     ];
 
     /**
-     * Get the hotel that owns the detail.
+     * Get the products for the restaurant.
      */
     public function hotel()
     {
         return $this->belongsTo(Hotel::class);
-    }
-
-    /**
-     * Get the room type associated with the detail.
-     */
-    public function roomType()
-{
-    return $this->belongsTo(RoomType::class);
-}
-
+    } 
 }

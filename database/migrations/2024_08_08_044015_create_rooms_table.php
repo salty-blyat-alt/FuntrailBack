@@ -11,12 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('hotel_details', function (Blueprint $table) {
-            $table->foreignId('room_type_id')->constrained()->onDelete('cascade'); // Foreign key to room_types table
+        Schema::create('rooms', function (Blueprint $table) {
+            $table->id();
             $table->foreignId('hotel_id')->constrained()->onDelete('cascade'); // Foreign key to room_types table
-            $table->string('image')->nullable(); // Foreign key to room_types table
-            $table->boolean('is_available'); // Availability status (true/false)
-            $table->timestamps(); // Adds created_at and updated_at columns
+            $table->string('room_type');
+            $table->decimal('price', 8, 2);  
+            $table->string('status');
+            $table->timestamps(); 
         });
     }
 
@@ -25,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('hotel_details');
+        Schema::dropIfExists('rooms');
     }
 };

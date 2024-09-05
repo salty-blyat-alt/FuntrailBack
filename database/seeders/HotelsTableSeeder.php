@@ -9,6 +9,6 @@ class HotelsTableSeeder extends Seeder
 {
     public function run()
     {
-        Hotel::factory()->count(20)->create();
+        Hotel::factory()->count(10)->create();
     }
 }

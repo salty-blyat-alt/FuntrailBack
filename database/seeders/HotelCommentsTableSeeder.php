@@ -9,6 +9,6 @@ class HotelCommentsTableSeeder extends Seeder
 {
     public function run()
     {
-        HotelComment::factory()->count(50)->create();
+        HotelComment::factory()->count(10)->create();
     }
 }
