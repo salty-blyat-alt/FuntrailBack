@@ -13,9 +13,11 @@ return new class extends Migration
     {
         Schema::create('commisions', function (Blueprint $table) {
             $table->id();
-            $table->integer('user_id')->constrained()->onDelete('cascade');  
+            $table->integer('user_id')->constrained()->onDelete('cascade');
+            $table->string('payment_type');
+            $table->decimal('total_payment');
             $table->integer('commission_rate')->default(0);
-            $table->decimal('total_commision'); 
+            $table->decimal('total_commision');
 
             $table->timestamps();
         });

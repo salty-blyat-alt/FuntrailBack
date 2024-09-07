@@ -25,7 +25,6 @@ class AuthController extends Controller
             $validatedData = $validator->validated();
 
             if ($request->hasFile('profile_img')) {
-                // Store the image and get the path
                 $imagePath = $request->file('profile_img')->store('users', 'public');
                 $validatedData['profile_img'] = $imagePath;
             } else {
@@ -93,11 +92,11 @@ class AuthController extends Controller
 
 
     public function logout(Request $request)
-    {  
+    {
         $user = $request->user()->tokens()->delete();
         if(!$user){
             return $this->errorResponse('Unauthicated', 401);
-        } 
+        }
       return $this->successResponse(['message' => 'User logged out successfully'], 200);
     }
 }

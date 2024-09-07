@@ -29,7 +29,7 @@ class Room extends Model
     protected $casts = [
         'hotel_id' => 'int',
         'room_type' => 'string',
-        'price' => 'float',
+        'price' => 'numeric',
         'status' => 'string',
     ];
 
