@@ -5,155 +5,109 @@ namespace App\Http\Controllers\Hotel;
 use App\Models\Hotel;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Models\Booking;
-
-
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class HotelController extends Controller
 {
-    public function search(Request $request)
+    // work done
+    public function index(Request $request)
     {
-        $query = Hotel::select('id', 'name', 'room_available', 'image', 'open_at', 'close_at');
-
-        if ($request->has('province_id') && $request->input('province_id') !== '') {
-            $query->where('province_id', $request->input('province_id'));
-        }
-  
-        if ($request->has('name') && $request->input('name') !== '') {
-            $query->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($request->input('name')) . '%']);
-        }
-
-        if ($request->has('price_min') && $request->has('price_max')) {
-            $query->whereHas('hotelDetails', function ($q) use ($request) {
-                $q->whereHas('roomType', function ($q) use ($request) {
-                    $q->whereBetween('price', [$request->input('price_min'), $request->input('price_max')]);
-                });
-            });
-        }
-
-        $hotels = $query->with(['hotelDetails.roomType'])->get();
-
-        $hotels = $hotels->map(function ($hotel) {
-            $hotelDetails = $hotel->hotelDetails->map(function ($detail) {
-                return [
-                    'room_type_id' => $detail->room_type_id,
-                    'room_type_name' => $detail->roomType->room_type,
-                    'price' => $detail->roomType->price,
-                    'image' => $detail->image,
-                    'is_available' => $detail->is_available,
-                ];
-            });
-
-            return [
-                'id' => $hotel->id,
-                'name' => $hotel->name,
-                'room_available' => $hotel->room_available,
-                'hotel_details' => $hotelDetails,
-            ];
-        });
-
-        return response()->json($hotels);
+        $perPage = $request->query('per_page', 15);
+        $hotels = Hotel::paginate($perPage);
+        $hotels = cleanPagination($hotels);
+        return $this->successResponse($hotels);
     }
 
-    public function popular($limit = 20)
-    {
-        $hotels = Booking::select('hotel_id')
-            ->groupBy('hotel_id')
-            ->orderBy('total_bookings', 'DESC')
-            ->take($limit)
-            ->get();
-
-        return response()->json($hotels);
-    }
-
-    public function index()
-    {
-        $hotels = Hotel::all();
-        return response()->json($hotels);
-    }
-
+    // work done
     public function store(Request $request)
     {
-        try {
-            $validatedData = $request->validate([
-                'name' => 'required|string|max:255',
-                'user_id' => 'required|integer|exists:users,id',
-                'province_id' => 'required|integer|exists:provinces,id',
-                'address' => 'required|string|max:255',
-                'description' => 'nullable|string',
-                'phone_number' => 'required|string',
-                'thumbnail' => 'nullable|file|image|mimes:jpeg,png,jpg',
-                'images' => 'nullable|array',
-                'images.*' => 'file|image|mimes:jpeg,png,jpg',
-                'open_at' => 'required|date_format:H:i',
-                'close_at' => 'required|date_format:H:i|after:open_at',
-            ]);
+        
+        $validatedData = Validator::make($request->all(), $this->hotelRules()); 
 
-            if ($request->hasFile('thumbnail')) {
-                $thumbnailPath = $request->file('thumbnail')->store('hotels/thumbnails', 'public');
-                $validatedData['thumbnail'] = $thumbnailPath;
-            }
-
-            if ($request->has('images')) {
-                $imagesPaths = [];
-                foreach ($request->file('images') as $image) {
-                    $imagesPaths[] = $image->store('hotels/images', 'public');
-                }
-                $validatedData['images'] = json_encode($imagesPaths); // Store as JSON
-            } else {
-                $validatedData['images'] = null; // Ensure images field is null if no files are uploaded
-            }
-
-            $hotel = Hotel::create($validatedData);
-            return response()->json($hotel, 201);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['errors' => $e->errors()], 422);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'An unexpected error occurred.', 'message' => $e->getMessage()], 500);
-        }
-    }
-
-    public function show(Hotel $hotel)
-    {
-        return response()->json($hotel);
-    }
-
-    public function update(Request $request, Hotel $hotel)
-    {
-        $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'user_id' => 'sometimes|required|integer|exists:users,id',
-            'province_id' => 'sometimes|required|integer|exists:provinces,id',
-            'address' => 'sometimes|required|string|max:255',
-            'description' => 'nullable|string',
-            'phone_number' => 'sometimes|required|string',
-            'thumbnail' => 'nullable|file|image|mimes:jpeg,png,jpg',
-            'images' => 'nullable|array',
-            'images.*' => 'file|image|mimes:jpeg,png,jpg',
-            'open_at' => 'sometimes|required|date_format:H:i',
-            'close_at' => 'sometimes|required|date_format:H:i|after:open_at',
-        ]);
-
-        if ($request->hasFile('thumbnail')) {
-            $thumbnailPath = $request->file('thumbnail')->store('hotels/thumbnails', 'public');
-            $request['thumbnail'] = $thumbnailPath;
+        if ($validatedData->fails()) {
+            info($validatedData->messages()); 
+            return $this->errorResponse("Hotel failed to create", 500);
         }
 
-        if ($request->has('images')) {
+        $thumbnailPath = uploadDocument($request->file('thumbnail'), 'hotels/thumbnails');
+
+        // Upload multiple images if provided
+        if ($request->hasfile('images')) {
             $imagesPaths = [];
-            foreach ($request->file('images') as $image) {
-                $imagesPaths[] = $image->store('hotels/images', 'public');
+            foreach ($request->file('images') as $index => $file) {
+                $imagesPaths[$index]        = uploadDocument($file, 'hotels/images');
             }
-            $request['images'] = json_encode($imagesPaths);
         }
 
-        $hotel->update($request->all());
+        $imagesJson = json_encode($imagesPaths);
+
+        $validatedData = $validatedData->validated();
+
+        $hotel = Hotel::create([
+            'name'         => $request->name,
+            'user_id'      => $request->user_id,
+            'province_id'  => $request->province_id,
+            'address'      => $request->address,
+            'description'  => $request->description ?? null,
+            'phone_number' => $request->phone_number,
+            'thumbnail'    => $thumbnailPath ?? null,
+            'images'       => $imagesJson ?? null,
+            'open_at'      => $request->open_at,
+            'close_at'     => $request->close_at,
+        ]);
+        // for production
+        // return $this->successResponse("Hotel created successfully");
+
+        // for dev
+        return $this->successResponse($hotel, 201);
+    } 
+
+
+    // work done
+    public function show(string $id)
+    {
+        $hotel = Hotel::find($id);
+
+        if (!$hotel) {
+            info('Error show: Approver not found');
+            return $this->errorResponse('Approver failed to get', 500);
+        }
+
+        return $this->successResponse($hotel);
+    }
+
+
+
+    public function update(Request $request, string $id)
+    {
+        $hotel = Hotel::find($id);
+        $validatedData = Validator::make($request->all(), $this->hotelRules());
+
+        if (!$hotel) {
+            info('Approver not found');
+            return $this->errorResponse('Approver failed to update', 500);
+        }
+
+        DB::table('hotels')->where('id', $id)->update([
+            'name'         => $request->name,
+            'user_id'      => $request->user_id,
+            'province_id'  => $request->province_id,
+            'address'      => $request->address,
+            'description'  => $request->description ?? null,
+            'phone_number' => $request->phone_number,
+            'thumbnail'    => $request->thumbnail,
+            'images'       => $request->images,
+            'open_at'      => $request->open_at,
+            'close_at'     => $request->close_at,
+        ]);
         return response()->json($hotel);
     }
 
     public function destroy(Hotel $hotel)
     {
         $hotel->delete();
-        return response()->json(['message' => 'Hotel deleted successfully'], 200);
+        return $this->successResponse('Hotel deleted successfully');
     }
+ 
 }

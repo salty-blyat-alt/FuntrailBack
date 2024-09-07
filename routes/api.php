@@ -30,8 +30,14 @@ Route::prefix('search')->group(function () {
 });
 
 
+ 
+ 
 
-Route::middleware('auth:sanctum')->prefix('create')->group(function () {
-    Route::post('hotel', [HotelController::class, 'store']);
-    Route::post('restaurant', [RestaurantController::class, 'store']);
+
+Route::middleware('auth:sanctum')->prefix('hotel')->group(function () {
+    Route::get('list',          [HotelController::class, 'index']);
+    Route::post('create',       [HotelController::class, 'store']);
+    Route::post('update/{id}',  [HotelController::class, 'update']);
+    Route::post('delete',       [HotelController::class, 'destroy']);
+    Route::get('show/{id}',     [HotelController::class, 'show']);
 });

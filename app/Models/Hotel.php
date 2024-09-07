@@ -23,8 +23,7 @@ class Hotel extends Model
         'province_id',
         'address',
         'description', 
-        'phone_number',
-        'thumbnail',
+         'thumbnail',
         'images',
         'open_at',
         'close_at'
@@ -52,4 +51,5 @@ class Hotel extends Model
     {
         return $this->belongsTo(Province::class, 'province_id', 'id');
     } 
+    
 }

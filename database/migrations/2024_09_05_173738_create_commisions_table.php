@@ -15,9 +15,9 @@ return new class extends Migration
             $table->id();
             $table->integer('user_id')->constrained()->onDelete('cascade');
             $table->string('payment_type');
-            $table->decimal('total_payment');
+            $table->decimal('total_payment', 8,2);
             $table->integer('commission_rate')->default(0);
-            $table->decimal('total_commision');
+            $table->decimal('total_commision',8,2);
 
             $table->timestamps();
         });

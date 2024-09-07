@@ -16,6 +16,8 @@ class Commission extends Model
      */
     protected $fillable = [
         'user_id',
+        'payment_type',
+        'total_payment',
         'commission_rate',
         'total_commision',
     ];
@@ -26,9 +28,11 @@ class Commission extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'user_id' => 'int',
-        'commission_rate' => 'int',
-        'total_commision' => 'float',
+        'user_id'           => 'int',
+        'commission_rate'   => 'int',
+        'total_commision'   => 'decimal',
+        'payment_type'      => 'string',
+        'total_payment'     => 'decimal',
     ];
 
     /**

@@ -17,8 +17,8 @@ return new class extends Migration {
             $table->foreignId('province_id')->constrained()->onDelete('cascade'); 
             $table->text('address');  
             $table->text('description')->nullable(); 
-            $table->string('thumbnail');
-            $table->json('images');
+            $table->string('thumbnail')->nullable();
+            $table->json('images')->nullable();
             $table->time('open_at');  
             $table->time('close_at'); 
 

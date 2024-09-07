@@ -47,12 +47,16 @@ abstract class Controller
     public function hotelRules()
     {
         return [
-            'name'              => 'required|string',
-            'location'          => 'required|string',
-            'total_rooms'       => 'required|integer',
-            'bookings_count'    => 'required|integer',
-            'average_rating'    => 'required|numeric|between:0,5',
-            'revenue'           => 'required|numeric',
+            'name'   => 'required|string',
+            'user_id'   => 'required|int',
+            'province_id'   => 'required|int',
+            'address'   => 'required|string',
+            'description'   => 'string',
+            'thumbnail'   => 'nullable|file|mimes:jpeg,png,jpg',
+            'images'       => 'nullable|array',
+            'images.*'     => 'file|mimes:jpeg,png,jpg|max:2048',
+            'open_at'   => 'required|string',
+            'close_at'   => 'required|string',
         ];
     }
 
@@ -62,9 +66,9 @@ abstract class Controller
             'id'        => 'required|int',
             'room_id'   => 'required|int',
             'user_id'   => 'required|int',
-            'check_in'  => 'required|datetime:H:i:s',
-            'check_out' => 'required|datetime:H:i:s',
-            'date'      => 'required|date_format:d:m:Y',
+            'check_in'  => 'required|string',
+            'check_out' => 'required|string',
+            'date'      => 'required|string',
             'total'     => 'required|numeric',
         ];
     }
@@ -82,9 +86,11 @@ abstract class Controller
     public function commissionRules()
     {
         return [
-            'user_id'           => 'required|int',
-            'commission_rate'   => 'required|int',
-            'total_commision'   => 'required|numeric',
+            'user_id' => 'required|integer|exists:users,id',
+            'payment_type' => 'required|string',
+            'total_payment' => 'required|numeric|min:0',
+            'commission_rate' => 'required|integer|min:0|max:100',
+            'total_commision' => 'required|numeric|min:0',
         ];
     }
 }
