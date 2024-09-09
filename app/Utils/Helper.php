@@ -16,6 +16,8 @@ function cleanPagination (LengthAwarePaginator $data) {
       'paginate' => $paginate
   ];
 }
+
+
 function uploadDocument($documentUpload, $documentFolderName)
     {
         $originalFilename = pathinfo($documentUpload->getClientOriginalName(), PATHINFO_FILENAME);

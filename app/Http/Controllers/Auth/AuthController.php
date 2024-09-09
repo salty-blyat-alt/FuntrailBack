@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Province;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,26 +24,22 @@ class AuthController extends Controller
 
         try {
             $validatedData = $validator->validated();
-
+            
             if ($request->hasFile('profile_img')) {
-                $imagePath = $request->file('profile_img')->store('users', 'public');
-                $validatedData['profile_img'] = $imagePath;
-            } else {
-                $validatedData['profile_img'] = null;
+                $imgPath = uploadDocument($request->file('profile_img'),'users/profiles'); 
             }
 
 
             $user = User::create([ 
                 'username' => $validatedData['username'],
                 'email' => $validatedData['email'],
-                'user_type' => $validatedData['user_type'],
+                'user_type' => 'customer',
                 'province_id' => $validatedData['province_id'],
                 'phone_number' => $validatedData['phone_number'],
-                'profile_img' => $validatedData['profile_img'],
+                'profile_img' => $imgPath ?? null,
                 'password' => Hash::make($validatedData['password'])
             ]);
-
-            // Generate a Sanctum token
+ 
             $token = $user->createToken($user->username)->plainTextToken;
 
             return $this->successResponse([
@@ -60,9 +57,8 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         try {
-            
             $request->validate([
-                 'email' => 'required|email|exists:users,email',
+                'email' => 'required|email|exists:users,email',
                 'password' => 'required|string',
             ]);
             
@@ -87,9 +83,7 @@ class AuthController extends Controller
         }
     }
 
-
-
-
+   
     public function logout(Request $request)
     {
         $user = $request->user()->tokens()->delete();

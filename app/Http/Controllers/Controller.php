@@ -35,8 +35,7 @@ abstract class Controller
         return [
             'username'      => 'required|string',
             'email'         => 'required|string|email|unique:users',
-            'password'      => 'required|string|min:8',
-            'user_type'     => 'required|string',
+            'password'      => 'required|string|min:8', 
             'province_id'   => 'nullable|integer',
             'phone_number'  => 'required|string',
             'profile_img'   => 'nullable|file|mimes:jpeg,png,jpg',

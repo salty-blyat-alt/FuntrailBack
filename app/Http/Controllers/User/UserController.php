@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
+use App\Models\Province;
 
 class UserController extends Controller
 {
@@ -96,4 +97,27 @@ class UserController extends Controller
 
         return response()->json(null, 204); // 204 status code for no content
     }
+    
+    public function profile(Request $request) {
+        // Check if user is authenticated
+        if ($request->user()) {
+            $user = $request->user();
+            $province = Province::where('id', $user->province_id)->value('name');            
+            $user = [
+                "id"=> $user->id,
+                "username"=> $user->username,
+                "email"=> $user->email,
+                "balance"=> $user->balance, 
+                "user_type"=> $user->user_type,
+                "province"=> $province,
+                "phone_number"=> $user->phone_number,
+                "profile_img"=> $user->profile_img
+            ];
+                return $this->successResponse($user);
+        }
+    
+        return $this->errorResponse(['error' => 'Unauthorized'], 401);
+    }
+
+
 }
