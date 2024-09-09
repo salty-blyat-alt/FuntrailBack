@@ -28,8 +28,7 @@ class AuthController extends Controller
             if ($request->hasFile('profile_img')) {
                 $imgPath = uploadDocument($request->file('profile_img'),'users/profiles'); 
             }
-
-
+ 
             $user = User::create([ 
                 'username' => $validatedData['username'],
                 'email' => $validatedData['email'],
@@ -66,14 +65,15 @@ class AuthController extends Controller
 
             if (!$user || !Hash::check($request->password, $user->password)) {
                 return $this->errorResponse('Email or password is not correct', 422);
-            }
- 
+            } 
+
             $token = $user->createToken($user->username)->plainTextToken;
 
             return $this->successResponse([
-                'user' => $user,
                 'access_token' => $token,
                 'token_type' => 'Bearer' ]);
+
+
         } catch (\Illuminate\Validation\ValidationException $e) { 
             return $this->errorResponse($e->errors(), 422);
         } catch (\Exception $e) {

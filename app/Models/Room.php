@@ -17,8 +17,7 @@ class Room extends Model
     protected $fillable = [
         'hotel_id',
         'room_type',
-        'price',
-        'status',
+        'price_per_night' 
     ];
 
     /**
@@ -29,8 +28,7 @@ class Room extends Model
     protected $casts = [
         'hotel_id' => 'int',
         'room_type' => 'string',
-        'price' => 'numeric',
-        'status' => 'string',
+        'price_per_night' => 'float'
     ];
 
     /**

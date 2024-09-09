@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Booking extends Model
 {
     use HasFactory;
-      /**
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -17,9 +17,8 @@ class Booking extends Model
         'id',
         'room_id',
         'user_id',
-        'check_in',
-        'check_out',
-        'date',
+        'date_start',
+        'date_end', 
         'total',
     ];
 
@@ -29,8 +28,6 @@ class Booking extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'check_in' => 'datetime:H:i:s',
-        'check_out' => 'datetime:H:i:s',
         'total' => 'decimal:2', 
     ];
 

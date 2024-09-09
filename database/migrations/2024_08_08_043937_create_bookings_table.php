@@ -15,9 +15,8 @@ return new class extends Migration
             $table->integer('id')->unsigned();  
             $table->foreignId('room_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->time('check_in');
-            $table->time('check_out');
-            $table->date('date');
+            $table->date('date_start');
+            $table->date('date_end'); 
             $table->decimal('total', 8, 2);
             $table->timestamps();
         });

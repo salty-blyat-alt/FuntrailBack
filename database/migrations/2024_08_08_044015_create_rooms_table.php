@@ -15,8 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('hotel_id')->constrained()->onDelete('cascade'); // Foreign key to room_types table
             $table->string('room_type');
-            $table->decimal('price', 8, 2);  
-            $table->string('status');
+            $table->decimal('price_per_night', 8, 2);
             $table->timestamps(); 
         });
     }
