@@ -62,6 +62,7 @@ abstract class Controller
     {
         return [
             'room_ids'     => 'required|array', 
+            'hotel_id'     => 'required|int',
             'room_ids.*'   => 'required|int', 
             'date_start'   => 'required|date_format:d/m/Y',
             'date_end'     => 'required|date_format:d/m/Y|after_or_equal:date_start',

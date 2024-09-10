@@ -30,12 +30,20 @@ class HotelController extends Controller
             'hotels.open_at',
             'hotels.close_at',
             'provinces.name as province',
-            'users.username as owner' // Select the owner's name
+            'users.username as owner'
         )
             ->leftJoin('provinces', 'provinces.id', '=', 'hotels.province_id')
             ->leftJoin('users', 'users.id', '=', 'hotels.user_id')
             ->paginate($perPage);
 
+        // Format open_at and close_at after fetching
+        $hotels->getCollection()->transform(function ($hotel) {
+            $hotel->open_at = Carbon::parse($hotel->open_at)->format('H:i');
+            $hotel->close_at = Carbon::parse($hotel->close_at)->format('H:i');
+            return $hotel;
+        });
+
+        // Clean pagination if necessary
         $hotels = cleanPagination($hotels);
 
         return $this->successResponse($hotels);
@@ -98,6 +106,10 @@ class HotelController extends Controller
     public function show(string $id)
     {
         $hotel = Hotel::find($id);
+        if (!$hotel) {
+            info('Hotel failed to get');
+            return $this->errorResponse('Hotel failed to get', 500);
+        }
         $province = Province::where('id', $hotel->province_id)->value('name');
         $owner = User::where('id', $hotel->user_id)->value('username');
         $close_at =  Carbon::parse($hotel->open_at)->format('H:i');
@@ -105,6 +117,7 @@ class HotelController extends Controller
 
 
         $hotel = [
+            "id"        => $hotel->id,
             "name"        => $hotel->name,
             "owner"       => $owner,
             "province"    => $province,
@@ -114,20 +127,15 @@ class HotelController extends Controller
             "images"      => $hotel->images,
             "open_at"     => $open_at,
             "close_at"    => $close_at,
-            "created_at"  => $hotel->created_at,
-            "updated_at"  => $hotel->updated_at,
         ];
 
-        if (!$hotel) {
-            info('Hotel failed to get');
-            return $this->errorResponse('Hotel failed to get', 500);
-        }
+
 
         return $this->successResponse($hotel);
     }
 
 
-    // working
+    // work done
     public function update(Request $request)
     {
         $user_id = $request->user()->id;
@@ -158,24 +166,38 @@ class HotelController extends Controller
 
         return $this->successResponse('Hotel updated successfully');
     }
-
+    // work done
     public function destroy(Request $request)
     {
         $user_id = $request->user()->id;
         $hotel = Hotel::where('user_id', $user_id)->first();
-
         if (!$hotel) {
             return $this->errorResponse(['message' => 'Hotel not found.'], 404);
         }
-        $hotel->delete();
-        return $this->successResponse('Hotel deleted successfully');
+
+        DB::beginTransaction();
+
+        try {
+
+            User::where('id', $user_id)->update([
+                'user_type' => 'customer'
+            ]);
+
+            $hotel->delete();
+
+            DB::commit();
+
+            return $this->successResponse('Hotel deleted successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->errorResponse(['message' => 'Failed to delete hotel.'], 500);
+        }
     }
 
-
+    // work done
     public function book(Request $request)
     {
         $validatedData = Validator::make($request->all(), $this->bookingRules());
-
         if ($validatedData->fails()) {
             info($validatedData->messages());
             return $this->errorResponse($validatedData->messages(), 500);
@@ -204,17 +226,16 @@ class HotelController extends Controller
                     ->exists();
 
                 if ($isBooked) {
-                    return $this->errorResponse('Room ' . $room_id . ' is not available for the selected dates.', 400);
+                    return $this->errorResponse('Room is not available for the selected dates.', 400);
                 }
             }
         }
 
         $user_type = $request->user()->user_type;
-        $hotel_exist = Hotel::where('user_id', $customer_id)->exists();
+        $is_hotel_owner = Hotel::where('user_id', $customer_id)->exists();
 
         // Check if the user is the owner of the hotel
-        if ($user_type === 'hotel' && $hotel_exist) {
-            // Directly create bookings without a transaction for owners
+        if ($user_type === 'hotel' && $is_hotel_owner) {
             $bookings = [];
 
             foreach ($request->room_ids as $room_id) {
@@ -222,8 +243,9 @@ class HotelController extends Controller
 
                 if ($room) {
                     $booking = Booking::create([
-                        'id' => rand(1, 4000000000), // Generate a new ID for each booking
+                        'id' => rand(1, 4000000000),
                         'room_id' => $room_id,
+                        'hotel_id' => $request->hotel_id,
                         'user_id' => $customer_id,
                         'date_start' => $date_start,
                         'date_end' => $date_end,
@@ -252,6 +274,7 @@ class HotelController extends Controller
                     $booking = Booking::create([
                         'id' => rand(1, 4000000000),
                         'room_id' => $room_id,
+                        'hotel_id' => $request->hotel_id,
                         'user_id' => $customer_id,
                         'date_start' => $date_start,
                         'date_end' => $date_end,
@@ -274,7 +297,25 @@ class HotelController extends Controller
             DB::rollBack();
             return $this->errorResponse(['message' => 'An error occurred while processing your request.'], 500);
         }
-
         return $this->successResponse(['message' => "Rooms successfully booked.", 'bookings' => $bookings], 200);
+    }
+
+    public function popular()
+    {
+        $hotelBookings = DB::table('bookings as b')
+            ->leftJoin('users as u', 'u.id', '=', 'b.user_id')
+            ->leftJoin('hotels as h', 'h.id', '=', 'b.hotel_id')
+            ->select(
+                'h.id as hotel_id',
+                'h.name as hotel_name',
+                DB::raw('count(*) as popular_point') 
+            )
+            ->groupBy(
+                'h.id',
+                'h.name'
+            )
+            ->get();
+
+        return $this->successResponse($hotelBookings);
     }
 }

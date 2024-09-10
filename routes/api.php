@@ -47,12 +47,13 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
 });
   
 
-
-
-
 Route::prefix('popular')->group(function () {
-    Route::get('restaurants', [RestaurantController::class, 'popular']);
+    // in progress
     Route::get('hotels', [HotelController::class, 'popular']);
+    
+    
+    // not done
+    Route::get('restaurants', [RestaurantController::class, 'popular']);
     Route::get('provinces', [ProvinceController::class, 'popular']);
 });
 

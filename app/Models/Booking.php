@@ -17,6 +17,7 @@ class Booking extends Model
         'id',
         'room_id',
         'user_id',
+        'hotel_id',
         'date_start',
         'date_end', 
         'total',
@@ -45,5 +46,9 @@ class Booking extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+    public function hotel()
+    {
+        return $this->belongsTo(Hotel::class);
     }
 }
