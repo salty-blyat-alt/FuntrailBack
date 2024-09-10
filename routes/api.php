@@ -16,6 +16,8 @@ use App\Http\Controllers\User\UserController;
                         ||- customer                  ||      
                         ================================
  */
+
+
 // Authentication Routes
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
@@ -28,6 +30,7 @@ Route::prefix('auth')->group(function () {
 
 // protected routes
 Route::middleware('auth:sanctum')->prefix('hotel')->group(function () {
+    // work done
     Route::get('list',          [HotelController::class, 'index']);
     Route::post('create',       [HotelController::class, 'store']);
     Route::post('update',       [HotelController::class, 'update']);
@@ -48,7 +51,7 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
   
 
 Route::prefix('popular')->group(function () {
-    // in progress
+    // work done
     Route::get('hotels', [HotelController::class, 'popular']);
     
     
@@ -60,7 +63,6 @@ Route::prefix('popular')->group(function () {
 
 Route::prefix('search')->group(function () {
     Route::get('hotel', [HotelController::class, 'search']);
-    Route::get('restaurant', [RestaurantController::class, 'search']);
 });
 
 

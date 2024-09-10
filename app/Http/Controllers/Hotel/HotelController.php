@@ -16,32 +16,39 @@ use Illuminate\Support\Facades\Validator;
 class HotelController extends Controller
 {
     // work done
-    public function index(Request $request)
+    public function index(Request $request, $province_id = null, $min_price = 0, $max_price = PHP_INT_MAX)
     {
         $perPage = $request->query('per_page', 15);
 
-        $hotels = Hotel::select(
-            'hotels.id',
-            'hotels.name',
-            'hotels.address',
-            'hotels.description',
-            'hotels.thumbnail',
-            'hotels.images',
-            'hotels.open_at',
-            'hotels.close_at',
-            'provinces.name as province',
-            'users.username as owner'
-        )
-            ->leftJoin('provinces', 'provinces.id', '=', 'hotels.province_id')
-            ->leftJoin('users', 'users.id', '=', 'hotels.user_id')
-            ->paginate($perPage);
+        $hotels = DB::table('hotels as h')
+            ->leftJoin('users as c', 'c.id', '=', 'h.user_id')
+            ->leftJoin('rooms as r', 'r.hotel_id', '=', 'h.id')
+            ->select(
+                'h.id as id',
+                'h.name as name',
+                'c.username as owner',
+                'h.province_id as province',
+                'h.address as address',
+                'h.description as description',
+                'h.thumbnail as thumbnail',
+                'h.images as images',
+                'h.open_at as open_at',
+                'h.close_at as close_at',
+                DB::raw('CASE WHEN COUNT(r.id) > 0 THEN "available" ELSE "not available" END as is_available')   // case not available will never be true (lmao)
+            );
 
-        // Format open_at and close_at after fetching
-        $hotels->getCollection()->transform(function ($hotel) {
-            $hotel->open_at = Carbon::parse($hotel->open_at)->format('H:i');
-            $hotel->close_at = Carbon::parse($hotel->close_at)->format('H:i');
-            return $hotel;
-        });
+        // Apply filters if provided
+        if ($province_id) {
+            $hotels->where('h.province_id', $province_id);
+        }
+
+        if ($min_price || $max_price < PHP_INT_MAX) {
+            $hotels->whereBetween('r.price_per_night', [$min_price, $max_price]);
+        }
+
+        $hotels = $hotels
+            ->groupBy('h.id', 'h.name', 'c.username', 'h.province_id', 'h.address', 'h.description', 'h.thumbnail', 'h.images', 'h.open_at', 'h.close_at')
+            ->paginate($perPage);
 
         // Clean pagination if necessary
         $hotels = cleanPagination($hotels);
@@ -63,7 +70,7 @@ class HotelController extends Controller
 
         if ($validatedData->fails()) {
             info($validatedData->messages());
-            return $this->errorResponse("Hotel failed to create", 500);
+            return $this->errorResponse('Hotel failed to create', 500);
         }
 
         $thumbnailPath = uploadDocument($request->file('thumbnail'), 'hotels/thumbnails');
@@ -96,7 +103,7 @@ class HotelController extends Controller
         ]);
 
         // for production
-        // return $this->successResponse("Hotel created successfully");
+        // return $this->successResponse('Hotel created successfully');
 
         // for dev
         return $this->successResponse($hotel, 201);
@@ -117,16 +124,16 @@ class HotelController extends Controller
 
 
         $hotel = [
-            "id"        => $hotel->id,
-            "name"        => $hotel->name,
-            "owner"       => $owner,
-            "province"    => $province,
-            "address"     => $hotel->address,
-            "description" => $hotel->description,
-            "thumbnail"   => $hotel->thumbnail,
-            "images"      => $hotel->images,
-            "open_at"     => $open_at,
-            "close_at"    => $close_at,
+            'id'        => $hotel->id,
+            'name'        => $hotel->name,
+            'owner'       => $owner,
+            'province'    => $province,
+            'address'     => $hotel->address,
+            'description' => $hotel->description,
+            'thumbnail'   => $hotel->thumbnail,
+            'images'      => $hotel->images,
+            'open_at'     => $open_at,
+            'close_at'    => $close_at,
         ];
 
 
@@ -256,7 +263,7 @@ class HotelController extends Controller
                 }
             }
 
-            return $this->successResponse(['message' => "Rooms successfully booked.", 'bookings' => $bookings], 200);
+            return $this->successResponse(['message' => 'Rooms successfully booked.', 'bookings' => $bookings], 200);
         }
 
         $total_cost = 0;
@@ -285,8 +292,8 @@ class HotelController extends Controller
                 }
             }
 
-            info("Total Cost: " . $total_cost);
-            info("Customer Balance: " . $customer_balance);
+            info('Total Cost: ' . $total_cost);
+            info('Customer Balance: ' . $customer_balance);
 
             if ($total_cost > $customer_balance) {
                 DB::rollBack();
@@ -297,9 +304,11 @@ class HotelController extends Controller
             DB::rollBack();
             return $this->errorResponse(['message' => 'An error occurred while processing your request.'], 500);
         }
-        return $this->successResponse(['message' => "Rooms successfully booked.", 'bookings' => $bookings], 200);
+        return $this->successResponse(['message' => 'Rooms successfully booked.', 'bookings' => $bookings], 200);
     }
 
+
+    // work done
     public function popular()
     {
         $hotelBookings = DB::table('bookings as b')
@@ -308,7 +317,7 @@ class HotelController extends Controller
             ->select(
                 'h.id as hotel_id',
                 'h.name as hotel_name',
-                DB::raw('count(*) as popular_point') 
+                DB::raw('count(*) as popular_point')
             )
             ->groupBy(
                 'h.id',
@@ -317,5 +326,18 @@ class HotelController extends Controller
             ->get();
 
         return $this->successResponse($hotelBookings);
+    }
+
+
+    //progressing
+    public function search(Request $request)
+    {
+        // Get the parameters from the request
+        $province_id = $request->query('province_id', null);
+        $min_price = $request->query('min_price', 0);
+        $max_price = $request->query('max_price', PHP_INT_MAX);
+
+        // Pass parameters to the index method
+        return $this->index($request, $province_id, $min_price, $max_price);
     }
 }
