@@ -6,17 +6,20 @@ use App\Models\Hotel;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\Commission;
 use App\Models\Province;
 use App\Models\Room;
 use App\Models\User;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Symfony\Component\CssSelector\Node\FunctionNode;
 
 class HotelController extends Controller
 {
     // work done
-    public function index(Request $request, $province_id = null, $min_price = 0, $max_price = PHP_INT_MAX)
+    public function index(Request $request, $province_id = null, $min_price = 0, $max_price = PHP_INT_MAX, $name = null)
     {
         $perPage = $request->query('per_page', 15);
 
@@ -45,6 +48,10 @@ class HotelController extends Controller
 
         if ($min_price || $max_price < PHP_INT_MAX) {
             $hotels->whereBetween('r.price_per_night', [$min_price, $max_price]);
+        }
+
+        if ($name) {
+            $hotels->where(DB::raw('LOWER(h.name)'), 'like', '%' . strtolower($name) . '%');
         }
 
         $hotels = $hotels
@@ -217,22 +224,23 @@ class HotelController extends Controller
         $hotel = Hotel::where('user_id', $customer_id)->first();
         $hotel_owner_id = $hotel->user_id;
 
-        
+
         $date_start = Carbon::createFromFormat('d/m/Y', $request->date_start)->format('Y-m-d');
         $date_end = Carbon::createFromFormat('d/m/Y', $request->date_end)->format('Y-m-d');
-        
-        
+
+
         // Check room availability
         if (!$this->isRoomAvailable($request->room_ids, $date_start, $date_end, $request->hotel_id)) {
-          
             return $this->errorResponse('No rooms available');
         }
-        
- 
+
+
         // Check if the user is the owner of the hotel 
-        if ($user_type === 'hotel' && 
-        $hotel_owner_id === $customer_id && 
-        $hotel->id === $request->hotel_id) {
+        if (
+            $user_type === 'hotel' &&
+            $hotel_owner_id === $customer_id &&
+            $hotel->id === $request->hotel_id
+        ) {
             $bookings = $this->saveRecords($request->room_ids, $request->hotel_id, $customer_id, $date_start, $date_end, $uuid);
             return $this->successResponse($bookings);
         }
@@ -254,11 +262,25 @@ class HotelController extends Controller
                 }
             }
 
+
+            $total_commission = $total_cost * 0.05;
+            $total_cost = ($total_cost * 0.05) + $total_cost;
+
+            Commission::create([
+                'user_id' => $customer_id,
+                'payment_type' => 'Stripe',
+                'total_payment' => $total_cost,
+                'commission_rate' =>  5,
+                'total_commission' => $total_commission,
+            ]);
+
+
             // Check user balance before saving records
             if ($request->user()->balance < $total_cost) {
                 DB::rollBack(); // Rollback if insufficient balance
                 return $this->errorResponse('Insufficient balance', 400);
             }
+
 
             $bookings = $this->saveRecords($request->room_ids, $request->hotel_id, $customer_id, $date_start, $date_end, $uuid);
 
@@ -269,9 +291,9 @@ class HotelController extends Controller
             DB::commit();
 
             return $this->successResponse($bookings);
-        } catch (\Exception $e) {
-            DB::rollBack(); // Rollback on any exception
-            return $this->errorResponse('An error occurred while processing your request.');
+        } catch (Exception $e) {
+            DB::rollBack();
+            return $this->errorResponse($e->getMessage());
         }
         return $this->successResponse($bookings);
     }
@@ -279,7 +301,7 @@ class HotelController extends Controller
     // work done (chain with "book" func)
     public function isRoomAvailable($room_ids, $date_start, $date_end, $hotel_id)
     {
-        
+
         foreach ($room_ids as $room_id) {
             $room = Room::where('hotel_id', $hotel_id)->where('id', $room_id)->first();
             if (!$room) {
@@ -302,11 +324,10 @@ class HotelController extends Controller
         return true;
     }
 
-
     // work done (chain with "book" func)
     public function saveRecords($room_ids, $hotel_id, $customer_id, $date_start, $date_end, $uuid)
     {
-        
+
         $bookings = []; // Initialize bookings array
 
         foreach ($room_ids as $room_id) {
@@ -351,15 +372,24 @@ class HotelController extends Controller
 
         return $this->successResponse($hotelBookings);
     }
-    // work done
+
+
     public function search(Request $request)
     {
         // Get the parameters from the request
         $province_id = $request->query('province_id', null);
         $min_price = $request->query('min_price', 0);
         $max_price = $request->query('max_price', PHP_INT_MAX);
+        $name = $request->query('name', null);
 
         // Pass parameters to the index method
-        return $this->index($request, $province_id, $min_price, $max_price);
+        return $this->index($request, $province_id, $min_price, $max_price, $name);
+    }
+
+    public function rooms($id)
+    {
+        $rooms = Room::where('hotel_id', $id)->get();
+
+        return $this->successResponse($rooms);
     }
 }

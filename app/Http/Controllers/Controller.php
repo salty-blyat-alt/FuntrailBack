@@ -61,12 +61,12 @@ abstract class Controller
     public function bookingRules()
     {
         return [
-            'room_ids'     => 'required|array', 
+            'room_ids'     => 'required|array',
             'hotel_id'     => 'required|int',
-            'room_ids.*'   => 'required|int', 
+            'room_ids.*'   => 'required|int',
             'date_start'   => 'required|date_format:d/m/Y',
             'date_end'     => 'required|date_format:d/m/Y|after_or_equal:date_start',
-             
+
         ];
     }
 
@@ -88,6 +88,20 @@ abstract class Controller
             'total_payment'      => 'required|numeric|min:0',
             'commission_rate'    => 'required|integer|min:0|max:100',
             'total_commision'    => 'required|numeric|min:0',
+        ];
+    }
+
+    public function userRules()
+    {
+        return [
+            'username' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8',
+            'user_type' => 'sometimes|in:customer,restaurant,hotel',
+            'province_id' => 'nullable|numeric',
+            'balance' => 'sometimes|numeric',
+            'phone_number' => 'nullable|string|max:15',
+            'profile_img' => 'nullable|string', 
         ];
     }
 }

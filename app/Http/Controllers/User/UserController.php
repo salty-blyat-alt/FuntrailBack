@@ -7,16 +7,21 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
 use App\Models\Province;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
     /**
      * Display a listing of the users.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::all();
-        return response()->json($users);
+        $perPage = $request->query('per_page', 15);
+
+
+        $users = User::paginate($perPage);
+        $users = cleanPagination($users);
+        return $this->successResponse($users);
     }
 
     /**
@@ -25,26 +30,24 @@ class UserController extends Controller
     public function store(Request $request)
     {
         // Validate the incoming request data
-        $validatedData = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            // 'password' => 'required|string|min:8',        => for proudction
-            'password' => 'required|string',
-            'user_type' => 'sometimes|in:customer,restaurant,hotel',
-            'province' => 'nullable|string|max:255',
-            'balance' => 'sometimes|numeric',
-            'phone_number' => 'nullable|string|max:15',
-            'profile_img' => 'nullable|string',
-        ]);
+        $validatedData = $request->validate($this->userRules());
 
         // Hash the password before saving
         $validatedData['password'] = Hash::make($validatedData['password']);
-
+ 
         // Create the user
-        $user = User::create($validatedData);
+        User::create([
+            'username' => $validatedData['username'],
+            'email' => $validatedData['email'],
+            'password' => $validatedData['password'],
+            'user_type' => $validatedData['user_type'],
+            'province_id' => $validatedData['province_id'],
+            'balance' => $validatedData['balance'],
+            'phone_number' => $validatedData['phone_number'],
+            'profile_img' => $validatedData['profile_img']?? null, 
+        ]);
 
-        return response()->json($user, 201); // 201 status code for resource created
+        return $this->successResponse('User created successfully', 201);
     }
 
     /**
@@ -53,7 +56,12 @@ class UserController extends Controller
     public function show($id)
     {
         $user = User::findOrFail($id);
-        return response()->json($user);
+
+        if (!$user) {
+            return $this->errorResponse($user);
+        }
+
+        return $this->successResponse($user);
     }
 
     /**
@@ -61,63 +69,69 @@ class UserController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $user = User::findOrFail($id);
-
-        // Validate the request data
-        $validatedData = $request->validate([
-            'first_name' => 'sometimes|required|string|max:255',
-            'last_name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|string|email|max:255|unique:users,email,' . $id,
-            'password' => 'sometimes|required|string|min:8',
-            'user_type' => 'sometimes|required|string|max:50',
-            'province' => 'nullable|string|max:255',
-            'balance' => 'nullable|numeric',
-            'phone_number' => 'nullable|string|max:15',
-            'profile_img' => 'nullable|string',
-        ]);
-
-        // If password is provided, hash it before saving
-        if (isset($validatedData['password'])) {
-            $validatedData['password'] = Hash::make($validatedData['password']);
+        $user = User::findOrFail($id);  
+        if(!$user){
+            return $this->errorResponse('User not found', 404);
         }
 
-        // Update the user
-        $user->update($validatedData);
-
-        return response()->json($user);
+        if (!$request->hasAny(['username', 'email', 'password', 'profile_img','user_type', 'phone_number', 'province_id'])) {
+            return $this->errorResponse('User failed to update');
+        }
+        
+        // If password is provided, hash it before saving 
+        if (isset($request->password)) {
+            $request->password = Hash::make($request->password);
+        }
+        // Validate the request data
+        DB::table('users')->where('id', $user->id)->update([
+            'username'          => $request->username ?? $user->username,
+            'email'             => $request->email ?? $user->email,
+            'password'          => $request->password ?? $user->password,
+            'user_type'         => $request->user_type ?? $user->user_type,
+            'province_id'       => $request->province_id ?? $user->province_id,
+            'balance'           => $request->balance ?? $user->balance,
+            'phone_number'      => $request->phone_number ?? $user->phone_number,
+            'profile_img'       => $request->profile_img ?? $user->profile_img,
+        ]); 
+        
+        return $this->successResponse($user);
     }
 
     /**
      * Remove the specified user from storage.
      */
-    public function destroy($id)
+    public function destroy(Request $request)
     {
-        $user = User::findOrFail($id);
+        $user = User::findOrFail($request->id);
+        
+        if(!$user) {
+            return $this->errorResponse("User not found", 404);
+        }
+
         $user->delete();
 
-        return response()->json(null, 204); // 204 status code for no content
+        return $this->successResponse('Delete user successfully', 204);
     }
-    
-    public function profile(Request $request) {
-        // Check if user is authenticated
-        if ($request->user()) {
-            $user = $request->user();
-            $province = Province::where('id', $user->province_id)->value('name');            
-            $user = [
-                "id"=> $user->id,
-                "username"=> $user->username,
-                "email"=> $user->email,
-                "balance"=> $user->balance, 
-                "user_type"=> $user->user_type,
-                "province"=> $province,
-                "phone_number"=> $user->phone_number,
-                "profile_img"=> $user->profile_img
-            ];
-                return $this->successResponse($user);
+
+    public function profile(Request $request)
+    {
+        if (!$request->user()) {
+            return $this->errorResponse('Unauthorized', 401);
         }
-    
-        return $this->errorResponse(['error' => 'Unauthorized'], 401);
+
+        // Check if user is authenticated
+        $user = $request->user();
+        $province = Province::where('id', $user->province_id)->value('name');
+        $user = [
+            "id" => $user->id,
+            "username" => $user->username,
+            "email" => $user->email,
+            "balance" => $user->balance,
+            "user_type" => $user->user_type,
+            "province" => $province,
+            "phone_number" => $user->phone_number,
+            "profile_img" => $user->profile_img
+        ];
+        return $this->successResponse($user);
     }
-
-
 }

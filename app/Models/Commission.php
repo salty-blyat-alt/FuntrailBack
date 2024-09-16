@@ -19,7 +19,7 @@ class Commission extends Model
         'payment_type',
         'total_payment',
         'commission_rate',
-        'total_commision',
+        'total_commission',
     ];
 
     /**
@@ -30,7 +30,7 @@ class Commission extends Model
     protected $casts = [
         'user_id'           => 'int',
         'commission_rate'   => 'int',
-        'total_commision'   => 'decimal',
+        'total_commission'  => 'decimal',
         'payment_type'      => 'string',
         'total_payment'     => 'decimal',
     ];

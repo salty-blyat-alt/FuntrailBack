@@ -1,13 +1,12 @@
 <?php
 
-namespace App\Http\Middleware\Role;
+namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class CheckUserRoleMiddleware
+class RoleCheckMiddleware
 {
     /**
      * Handle an incoming request.
@@ -16,8 +15,6 @@ class CheckUserRoleMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $user = Auth::user();
-        dd($user);
         return $next($request);
     }
 }
