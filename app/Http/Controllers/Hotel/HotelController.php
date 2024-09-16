@@ -207,24 +207,32 @@ class HotelController extends Controller
         $validatedData = Validator::make($request->all(), $this->bookingRules());
         if ($validatedData->fails()) {
             info($validatedData->messages());
-            return $this->errorResponse($validatedData->messages(), 500);
+            return $this->errorResponse('Fail to book');
         }
-        
+
         $customer_id = $request->user()->id;
         $user_type = $request->user()->user_type;
         $uuid = rand(1, 4000000000);
-        $hotel_owner_id = Hotel::where('user_id', $customer_id)->first();
+        $request->hotel_id = (int) $request->hotel_id;
+        $hotel = Hotel::where('user_id', $customer_id)->first();
+        $hotel_owner_id = $hotel->user_id;
+
+        
         $date_start = Carbon::createFromFormat('d/m/Y', $request->date_start)->format('Y-m-d');
         $date_end = Carbon::createFromFormat('d/m/Y', $request->date_end)->format('Y-m-d');
-
-
+        
+        
         // Check room availability
         if (!$this->isRoomAvailable($request->room_ids, $date_start, $date_end, $request->hotel_id)) {
+          
             return $this->errorResponse('No rooms available');
         }
-
-        // Check if the user is the owner of the hotel
-        if ($user_type === 'hotel' && $hotel_owner_id === $customer_id) {
+        
+ 
+        // Check if the user is the owner of the hotel 
+        if ($user_type === 'hotel' && 
+        $hotel_owner_id === $customer_id && 
+        $hotel->id === $request->hotel_id) {
             $bookings = $this->saveRecords($request->room_ids, $request->hotel_id, $customer_id, $date_start, $date_end, $uuid);
             return $this->successResponse($bookings);
         }
@@ -234,82 +242,46 @@ class HotelController extends Controller
         DB::beginTransaction();
         try {
             $total_cost = 0;
-        
+
             // Calculate total cost first
             foreach ($request->room_ids as $room_id) {
                 $room = Room::find($room_id);
                 if ($room) {
                     $total_cost += $room->price_per_night;
                 } else {
-                    // If a room is not found, rollback and return an error
                     DB::rollBack();
-                    return $this->errorResponse('Room not found for ID: ' . $room_id, 404);
+                    return $this->errorResponse('Room not found', 404);
                 }
             }
-        
+
             // Check user balance before saving records
             if ($request->user()->balance < $total_cost) {
                 DB::rollBack(); // Rollback if insufficient balance
                 return $this->errorResponse('Insufficient balance', 400);
             }
-        
-            // Proceed to save records
+
             $bookings = $this->saveRecords($request->room_ids, $request->hotel_id, $customer_id, $date_start, $date_end, $uuid);
-        
+
             // Deduct balance after successful booking
             $request->user()->balance -= $total_cost;
             $request->user()->save();
-        
-            DB::commit(); // Commit the transaction if everything is successful
-        
-            return $this->successResponse(['message' => 'Rooms successfully booked.', 'bookings' => $bookings], 200);
+
+            DB::commit();
+
+            return $this->successResponse($bookings);
         } catch (\Exception $e) {
             DB::rollBack(); // Rollback on any exception
-            return $this->errorResponse(['message' => 'An error occurred while processing your request.'], 500);
+            return $this->errorResponse('An error occurred while processing your request.');
         }
         return $this->successResponse($bookings);
     }
 
-
-    // work done
-    public function popular()
-    {
-        $hotelBookings = DB::table('bookings as b')
-            ->leftJoin('users as u', 'u.id', '=', 'b.user_id')
-            ->leftJoin('hotels as h', 'h.id', '=', 'b.hotel_id')
-            ->select(
-                'h.id as hotel_id',
-                'h.name as hotel_name',
-                DB::raw('count(*) as popular_point')
-            )
-            ->groupBy(
-                'h.id',
-                'h.name'
-            )
-            ->get();
-
-        return $this->successResponse($hotelBookings);
-    }
-
-
-    public function search(Request $request)
-    {
-        // Get the parameters from the request
-        $province_id = $request->query('province_id', null);
-        $min_price = $request->query('min_price', 0);
-        $max_price = $request->query('max_price', PHP_INT_MAX);
-
-        // Pass parameters to the index method
-        return $this->index($request, $province_id, $min_price, $max_price);
-    }
-
-
-    // good to go
+    // work done (chain with "book" func)
     public function isRoomAvailable($room_ids, $date_start, $date_end, $hotel_id)
     {
+        
         foreach ($room_ids as $room_id) {
             $room = Room::where('hotel_id', $hotel_id)->where('id', $room_id)->first();
-
             if (!$room) {
                 return false;
             }
@@ -331,8 +303,10 @@ class HotelController extends Controller
     }
 
 
+    // work done (chain with "book" func)
     public function saveRecords($room_ids, $hotel_id, $customer_id, $date_start, $date_end, $uuid)
     {
+        
         $bookings = []; // Initialize bookings array
 
         foreach ($room_ids as $room_id) {
@@ -356,5 +330,36 @@ class HotelController extends Controller
         }
 
         return $bookings; // Return the array of bookings
+    }
+
+
+    public function popular()
+    {
+        $hotelBookings = DB::table('bookings as b')
+            ->leftJoin('users as u', 'u.id', '=', 'b.user_id')
+            ->leftJoin('hotels as h', 'h.id', '=', 'b.hotel_id')
+            ->select(
+                'h.id as hotel_id',
+                'h.name as hotel_name',
+                DB::raw('count(*) as popular_point')
+            )
+            ->groupBy(
+                'h.id',
+                'h.name'
+            )
+            ->get();
+
+        return $this->successResponse($hotelBookings);
+    }
+    // work done
+    public function search(Request $request)
+    {
+        // Get the parameters from the request
+        $province_id = $request->query('province_id', null);
+        $min_price = $request->query('min_price', 0);
+        $max_price = $request->query('max_price', PHP_INT_MAX);
+
+        // Pass parameters to the index method
+        return $this->index($request, $province_id, $min_price, $max_price);
     }
 }
