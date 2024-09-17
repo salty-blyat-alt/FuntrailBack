@@ -43,13 +43,25 @@ Route::middleware('auth:sanctum')->prefix('hotel')->group(function () {
     Route::post('book',                     [HotelController::class, 'book']);
 });
 
+// protected routes
+Route::middleware('auth:sanctum')->prefix('restaurant')->group(function () {
+
+    Route::get('list',                      [RestaurantController::class, 'index']);
+    Route::post('create',                   [RestaurantController::class, 'store']);
+    Route::post('update',                   [RestaurantController::class, 'update']);
+    Route::post('delete',                   [RestaurantController::class, 'destroy']);
+    Route::get('show/{id}',                 [RestaurantController::class, 'show']);
+    // Route::get('products/{id}',          [RestaurantController::class, '']);
+    // Route::post('checkout',              [RestaurantController::class, 'checkout']);
+
+});
+
 
 
 // public route 
 Route::prefix('search')->group(function () {
     Route::get('hotel', [HotelController::class, 'search']);
 });
-
 
 
 // protected routes
@@ -67,6 +79,6 @@ Route::prefix('popular')->group(function () {
     Route::get('hotels', [HotelController::class, 'popular']);
 
     // not done
+    // work on this
     Route::get('restaurants', [RestaurantController::class, 'popular']);
-    Route::get('provinces', [ProvinceController::class, 'popular']);
 });

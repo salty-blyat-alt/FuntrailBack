@@ -67,54 +67,68 @@ class HotelController extends Controller
     // work done
     public function store(Request $request)
     {
-        $validatedData = Validator::make(array_merge(
-            $request->all(),
-            [
-                'user_id'       => $request->user()->id,
-                'province_id'   => $request->user()->province_id,
-                'phone_number' => $request->user()->phone_number
-            ]
-        ), $this->hotelRules());
+        DB::beginTransaction();
+        try {
 
-        if ($validatedData->fails()) {
-            info($validatedData->messages());
-            return $this->errorResponse('Hotel failed to create', 500);
-        }
+            $validatedData = Validator::make(array_merge(
+                $request->all(),
+                [
+                    'user_id'       => $request->user()->id,
+                    'province_id'   => $request->user()->province_id,
+                    'phone_number' => $request->user()->phone_number
+                ]
+            ), $this->hotelRules());
 
-        $thumbnailPath = uploadDocument($request->file('thumbnail'), 'hotels/thumbnails');
-
-        if ($request->hasfile('images')) {
-            $imagesPaths = [];
-            foreach ($request->file('images') as $index => $file) {
-                $imagesPaths[$index]        = uploadDocument($file, 'hotels/images');
+            if ($validatedData->fails()) {
+                info($validatedData->messages());
+                return $this->errorResponse('Hotel failed to create', 500);
             }
+
+            $thumbnailPath = uploadDocument($request->file('thumbnail'), 'hotels/thumbnails');
+
+            if ($request->hasfile('images')) {
+                $imagesPaths = [];
+                foreach ($request->file('images') as $index => $file) {
+                    $imagesPaths[$index]        = uploadDocument($file, 'hotels/images');
+                }
+            }
+
+            $imagesJson = json_encode($imagesPaths);
+
+            $validatedData = $validatedData->validated();
+
+            $hotel = Hotel::create([
+                'name'         => $request->name,
+                'user_id'      => $request->user()->id,
+                'province_id'  => $request->user()->province_id,
+                'address'      => $request->address,
+                'description'  => $request->description ?? null,
+                'phone_number' => $request->user()->phone_number,
+                'thumbnail'    => $thumbnailPath ?? null,
+                'images'       => $imagesJson ?? null,
+                'open_at'      => $request->open_at,
+                'close_at'     => $request->close_at,
+            ]);
+            DB::table('users')->where('id', $request->user()->id)->update([
+                'user_type' => 'hotel'
+            ]);
+
+            $user = User::findOrFail($request->user()->id);
+
+            if ($user->user_type === 'hotel') {
+                return $this->errorResponse('User already own a hotel.', 400);
+            }
+
+            DB::commit();
+            // for production
+            return $this->successResponse('Hotel created successfully');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack(); // Rollback the transaction on validation error
+            return $this->errorResponse(['errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            DB::rollBack(); // Rollback the transaction on general error
+            return $this->errorResponse(['errors' => $e->getMessage()], 500);
         }
-
-        $imagesJson = json_encode($imagesPaths);
-
-        $validatedData = $validatedData->validated();
-
-        $hotel = Hotel::create([
-            'name'         => $request->name,
-            'user_id'      => $request->user()->id,
-            'province_id'  => $request->user()->province_id,
-            'address'      => $request->address,
-            'description'  => $request->description ?? null,
-            'phone_number' => $request->user()->phone_number,
-            'thumbnail'    => $thumbnailPath ?? null,
-            'images'       => $imagesJson ?? null,
-            'open_at'      => $request->open_at,
-            'close_at'     => $request->close_at,
-        ]);
-        DB::table('users')->where('id', $request->user()->id)->update([
-            'user_type' => 'hotel'
-        ]);
-
-        // for production
-        // return $this->successResponse('Hotel created successfully');
-
-        // for dev
-        return $this->successResponse($hotel, 201);
     }
 
     // work done
@@ -143,9 +157,6 @@ class HotelController extends Controller
             'open_at'     => $open_at,
             'close_at'    => $close_at,
         ];
-
-
-
         return $this->successResponse($hotel);
     }
 
@@ -169,7 +180,7 @@ class HotelController extends Controller
 
         DB::table('hotels')->where('id', $hotel->id)->update([
             'name'         => $request->name          ?? $hotel->name,
-            'user_id'      => $request->user_id       ?? $hotel->user_id,
+            'user_id'      => $hotel->user_id,
             'province_id'  => $request->province_id   ?? $hotel->province_id,
             'address'      => $request->address       ?? $hotel->address,
             'description'  => $request->description   ?? $hotel->description,

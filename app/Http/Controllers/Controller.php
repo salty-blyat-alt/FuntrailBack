@@ -94,14 +94,29 @@ abstract class Controller
     public function userRules()
     {
         return [
-            'username' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8',
-            'user_type' => 'sometimes|in:customer,restaurant,hotel',
-            'province_id' => 'nullable|numeric',
-            'balance' => 'sometimes|numeric',
-            'phone_number' => 'nullable|string|max:15',
-            'profile_img' => 'nullable|string', 
+            'username'          => 'required|string|max:255',
+            'email'             => 'required|string|email|max:255|unique:users',
+            'password'          => 'required|string|min:8',
+            'user_type'         => 'sometimes|in:customer,restaurant,hotel',
+            'province_id'       => 'nullable|numeric',
+            'balance'           => 'sometimes|numeric',
+            'phone_number'      => 'nullable|string|max:15',
+            'profile_img'       => 'nullable|string', 
+        ];
+    }
+
+    public function restaurantRules()
+    {
+        return [
+            'name'          => 'required|string',
+            'user_id'       => 'required|int',
+            'province_id'   => 'required|int',
+            'address'       => 'required|string',
+            'description'   => 'string',
+            'phone_number'  => 'string',
+            'image'         => 'nullable|file|mimes:jpeg,png,jpg', 
+            'open_at'       => 'required|string',
+            'close_at'      => 'required|string',
         ];
     }
 }
