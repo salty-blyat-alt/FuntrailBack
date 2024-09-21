@@ -76,6 +76,7 @@ abstract class Controller
             'hotel_id'              => 'required|int',
             'room_type'             => 'required|int',
             'user_id'               => 'required|int',
+            'status'                => 'required|string',
             'price_per_night'       => 'required|numeric'
         ];
     }

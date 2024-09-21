@@ -1,10 +1,11 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Book\BookController;
 use App\Http\Controllers\Hotel\HotelController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProvinceController;
+use Illuminate\Support\Facades\Route; 
 use App\Http\Controllers\Restaurant\RestaurantController;
+use App\Http\Controllers\Room\RoomController;
 use App\Http\Controllers\User\UserController;
 
 /* 
@@ -39,8 +40,10 @@ Route::middleware('auth:sanctum')->prefix('hotel')->group(function () {
     Route::post('delete',                   [HotelController::class, 'destroy']);
     Route::get('show/{id}',                 [HotelController::class, 'show']);
     Route::get('rooms/{id}',                [HotelController::class, 'rooms']);
+    Route::post('add-room',                 [RoomController::class, 'addRooms']);
+    Route::post('delete-room',              [RoomController::class, 'deleteRooms']);
 
-    Route::post('book',                     [HotelController::class, 'book']);
+    Route::post('book',                     [BookController::class, 'book']);
 });
 
 // protected routes

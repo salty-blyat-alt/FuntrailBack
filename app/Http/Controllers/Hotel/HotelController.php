@@ -75,52 +75,55 @@ class HotelController extends Controller
                 [
                     'user_id'       => $request->user()->id,
                     'province_id'   => $request->user()->province_id,
-                    'phone_number' => $request->user()->phone_number
+                    'phone_number'  => $request->user()->phone_number
                 ]
             ), $this->hotelRules());
 
             if ($validatedData->fails()) {
-                info($validatedData->messages());
                 return $this->errorResponse('Hotel failed to create', 500);
             }
 
+            // Check if user already owns a hotel before proceeding with creation
+            $user = User::findOrFail($request->user()->id);
+            $hotelExist = DB::table('hotels')->where('user_id', $user->id)->exists();
+
+            if ($user->user_type === 'hotel' || $hotelExist) {
+                return $this->errorResponse('User already owns a hotel.', 400);
+            }
+
+            // Handle file uploads
             $thumbnailPath = uploadDocument($request->file('thumbnail'), 'hotels/thumbnails');
 
+            $imagesPaths = [];
             if ($request->hasfile('images')) {
-                $imagesPaths = [];
                 foreach ($request->file('images') as $index => $file) {
-                    $imagesPaths[$index]        = uploadDocument($file, 'hotels/images');
+                    $imagesPaths[$index] = uploadDocument($file, 'hotels/images');
                 }
             }
 
+            // Validate and create hotel
             $imagesJson = json_encode($imagesPaths);
-
             $validatedData = $validatedData->validated();
 
             $hotel = Hotel::create([
-                'name'         => $request->name,
+                'name'         => $validatedData['name'],
                 'user_id'      => $request->user()->id,
                 'province_id'  => $request->user()->province_id,
-                'address'      => $request->address,
-                'description'  => $request->description ?? null,
+                'address'      => $validatedData['address'],
+                'description'  => $validatedData['description'] ?? null,
                 'phone_number' => $request->user()->phone_number,
                 'thumbnail'    => $thumbnailPath ?? null,
                 'images'       => $imagesJson ?? null,
-                'open_at'      => $request->open_at,
-                'close_at'     => $request->close_at,
+                'open_at'      => $validatedData['open_at'],
+                'close_at'     => $validatedData['close_at'],
             ]);
+
+            // Update user type after hotel creation
             DB::table('users')->where('id', $request->user()->id)->update([
                 'user_type' => 'hotel'
             ]);
 
-            $user = User::findOrFail($request->user()->id);
-
-            if ($user->user_type === 'hotel') {
-                return $this->errorResponse('User already own a hotel.', 400);
-            }
-
             DB::commit();
-            // for production
             return $this->successResponse('Hotel created successfully');
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack(); // Rollback the transaction on validation error
@@ -130,6 +133,8 @@ class HotelController extends Controller
             return $this->errorResponse(['errors' => $e->getMessage()], 500);
         }
     }
+
+
 
     // work done
     public function show(string $id)
@@ -192,11 +197,13 @@ class HotelController extends Controller
 
         return $this->successResponse('Hotel updated successfully');
     }
+
     // work done
     public function destroy(Request $request)
     {
         $user_id = $request->user()->id;
         $hotel = Hotel::where('user_id', $user_id)->first();
+
         if (!$hotel) {
             return $this->errorResponse(['message' => 'Hotel not found.'], 404);
         }
@@ -204,165 +211,25 @@ class HotelController extends Controller
         DB::beginTransaction();
 
         try {
-
+            // Update user type to 'customer'
             User::where('id', $user_id)->update([
                 'user_type' => 'customer'
             ]);
 
+            // Delete the hotel
             $hotel->delete();
 
+            // Commit the transaction
             DB::commit();
 
             return $this->successResponse('Hotel deleted successfully');
         } catch (\Exception $e) {
+            // Rollback the transaction on failure
             DB::rollBack();
             return $this->errorResponse(['message' => 'Failed to delete hotel.'], 500);
         }
     }
 
-    public function book(Request $request)
-    {
-        $validatedData = Validator::make($request->all(), $this->bookingRules());
-        if ($validatedData->fails()) {
-            info($validatedData->messages());
-            return $this->errorResponse('Fail to book');
-        }
-
-        $customer_id = $request->user()->id;
-        $user_type = $request->user()->user_type;
-        $uuid = rand(1, 4000000000);
-        $request->hotel_id = (int) $request->hotel_id;
-        $hotel = Hotel::where('user_id', $customer_id)->first();
-        $hotel_owner_id = $hotel->user_id;
-
-
-        $date_start = Carbon::createFromFormat('d/m/Y', $request->date_start)->format('Y-m-d');
-        $date_end = Carbon::createFromFormat('d/m/Y', $request->date_end)->format('Y-m-d');
-
-
-        // Check room availability
-        if (!$this->isRoomAvailable($request->room_ids, $date_start, $date_end, $request->hotel_id)) {
-            return $this->errorResponse('No rooms available');
-        }
-
-
-        // Check if the user is the owner of the hotel 
-        if (
-            $user_type === 'hotel' &&
-            $hotel_owner_id === $customer_id &&
-            $hotel->id === $request->hotel_id
-        ) {
-            $bookings = $this->saveRecords($request->room_ids, $request->hotel_id, $customer_id, $date_start, $date_end, $uuid);
-            return $this->successResponse($bookings);
-        }
-
-
-        // for regular customer
-        DB::beginTransaction();
-        try {
-            $total_cost = 0;
-
-            // Calculate total cost first
-            foreach ($request->room_ids as $room_id) {
-                $room = Room::find($room_id);
-                if ($room) {
-                    $total_cost += $room->price_per_night;
-                } else {
-                    DB::rollBack();
-                    return $this->errorResponse('Room not found', 404);
-                }
-            }
-
-
-            $total_commission = $total_cost * 0.05;
-            $total_cost = ($total_cost * 0.05) + $total_cost;
-
-            Commission::create([
-                'user_id' => $customer_id,
-                'payment_type' => 'Stripe',
-                'total_payment' => $total_cost,
-                'commission_rate' =>  5,
-                'total_commission' => $total_commission,
-            ]);
-
-
-            // Check user balance before saving records
-            if ($request->user()->balance < $total_cost) {
-                DB::rollBack(); // Rollback if insufficient balance
-                return $this->errorResponse('Insufficient balance', 400);
-            }
-
-
-            $bookings = $this->saveRecords($request->room_ids, $request->hotel_id, $customer_id, $date_start, $date_end, $uuid);
-
-            // Deduct balance after successful booking
-            $request->user()->balance -= $total_cost;
-            $request->user()->save();
-
-            DB::commit();
-
-            return $this->successResponse($bookings);
-        } catch (Exception $e) {
-            DB::rollBack();
-            return $this->errorResponse($e->getMessage());
-        }
-        return $this->successResponse($bookings);
-    }
-
-    // work done (chain with "book" func)
-    public function isRoomAvailable($room_ids, $date_start, $date_end, $hotel_id)
-    {
-
-        foreach ($room_ids as $room_id) {
-            $room = Room::where('hotel_id', $hotel_id)->where('id', $room_id)->first();
-            if (!$room) {
-                return false;
-            }
-            if ($room) {
-                return !Booking::where('room_id', $room_id)
-                    ->where(function ($query) use ($date_start, $date_end) {
-                        $query->whereBetween('date_start', [$date_start, $date_end])
-                            ->orWhereBetween('date_end', [$date_start, $date_end])
-                            ->orWhere(function ($query) use ($date_start, $date_end) {
-                                $query->where('date_start', '<=', $date_start)
-                                    ->where('date_end', '>=', $date_end);
-                            });
-                    })
-                    ->exists();
-            }
-        }
-
-        return true;
-    }
-
-    // work done (chain with "book" func)
-    public function saveRecords($room_ids, $hotel_id, $customer_id, $date_start, $date_end, $uuid)
-    {
-
-        $bookings = []; // Initialize bookings array
-
-        foreach ($room_ids as $room_id) {
-            $room = Room::find($room_id); // Find the room by ID
-
-            if ($room) {
-                // Create a booking record
-                $booking = Booking::create([
-                    'id' => $uuid,
-                    'room_id' => $room_id,
-                    'hotel_id' => $hotel_id,
-                    'user_id' => $customer_id,
-                    'date_start' => $date_start,
-                    'date_end' => $date_end,
-                    'total' => $room->price_per_night,
-                ]);
-
-                $booking->id = $uuid;
-                $bookings[] = $booking; // Add the booking to the array
-            }
-        }
-
-        return $bookings; // Return the array of bookings
-    }
 
 
     public function popular()
