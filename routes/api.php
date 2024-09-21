@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Book\BookController;
 use App\Http\Controllers\Hotel\HotelController;
+use App\Http\Controllers\Product\ProductController;
 use Illuminate\Support\Facades\Route; 
 use App\Http\Controllers\Restaurant\RestaurantController;
 use App\Http\Controllers\Room\RoomController;
@@ -48,24 +49,25 @@ Route::middleware('auth:sanctum')->prefix('hotel')->group(function () {
 
 // protected routes
 Route::middleware('auth:sanctum')->prefix('restaurant')->group(function () {
-
     Route::get('list',                      [RestaurantController::class, 'index']);
     Route::post('create',                   [RestaurantController::class, 'store']);
     Route::post('update',                   [RestaurantController::class, 'update']);
     Route::post('delete',                   [RestaurantController::class, 'destroy']);
     Route::get('show/{id}',                 [RestaurantController::class, 'show']);
-    // Route::get('products/{id}',          [RestaurantController::class, '']);
+    // product/id is hotel_id
+    Route::get('products/{id}',             [ProductController::class, 'menu']);
     // Route::post('checkout',              [RestaurantController::class, 'checkout']);
-
 });
 
-
-
-// public route 
-Route::prefix('search')->group(function () {
-    Route::get('hotel', [HotelController::class, 'search']);
+Route::middleware('auth:sanctum')->prefix('product')->group(function () {
+    Route::get('list',                      [ProductController::class, 'index']);
+    Route::post('create',                   [ProductController::class, 'store']);
+    Route::post('update',                   [ProductController::class, 'update']);
+    Route::post('delete',                   [ProductController::class, 'destroy']);
+    Route::get('show/{id}',                 [ProductController::class, 'show']); 
+    
 });
-
+ 
 
 // protected routes
 Route::middleware('auth:sanctum')->prefix('user')->group(function () {

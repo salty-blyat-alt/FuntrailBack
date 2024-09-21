@@ -19,9 +19,13 @@ use Symfony\Component\CssSelector\Node\FunctionNode;
 class HotelController extends Controller
 {
     // work done
-    public function index(Request $request, $province_id = null, $min_price = 0, $max_price = PHP_INT_MAX, $name = null)
+    public function index(Request $request)
     {
         $perPage = $request->query('per_page', 15);
+        $province_id = $request->query('province_id', null);
+        $min_price = $request->query('min_price', 0);
+        $max_price = $request->query('max_price', PHP_INT_MAX);
+        $name = $request->query('name', null);
 
         $hotels = DB::table('hotels as h')
             ->leftJoin('users as c', 'c.id', '=', 'h.user_id')
@@ -38,7 +42,7 @@ class HotelController extends Controller
                 'h.images as images',
                 'h.open_at as open_at',
                 'h.close_at as close_at',
-                DB::raw('CASE WHEN COUNT(r.id) > 0 THEN "available" ELSE "not available" END as is_available')   // case not available will never be true (lmao)
+                DB::raw('CASE WHEN COUNT(r.id) > 0 THEN "available" ELSE "not available" END as is_available')
             );
 
         // Apply filters if provided
@@ -64,6 +68,7 @@ class HotelController extends Controller
         return $this->successResponse($hotels);
     }
 
+
     // work done
     public function store(Request $request)
     {
@@ -87,8 +92,8 @@ class HotelController extends Controller
             $user = User::findOrFail($request->user()->id);
             $hotelExist = DB::table('hotels')->where('user_id', $user->id)->exists();
 
-            if ($user->user_type === 'hotel' || $hotelExist) {
-                return $this->errorResponse('User already owns a hotel.', 400);
+            if ($user->user_type === 'hotel' || $user->user_type === 'restaurant' || $hotelExist) {
+                return $this->errorResponse('User already owns a hotel or restaurant.', 400);
             }
 
             // Handle file uploads
@@ -133,8 +138,7 @@ class HotelController extends Controller
             return $this->errorResponse(['errors' => $e->getMessage()], 500);
         }
     }
-
-
+ 
 
     // work done
     public function show(string $id)
@@ -249,19 +253,6 @@ class HotelController extends Controller
             ->get();
 
         return $this->successResponse($hotelBookings);
-    }
-
-
-    public function search(Request $request)
-    {
-        // Get the parameters from the request
-        $province_id = $request->query('province_id', null);
-        $min_price = $request->query('min_price', 0);
-        $max_price = $request->query('max_price', PHP_INT_MAX);
-        $name = $request->query('name', null);
-
-        // Pass parameters to the index method
-        return $this->index($request, $province_id, $min_price, $max_price, $name);
     }
 
     public function rooms($id)

@@ -12,13 +12,19 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class RestaurantController extends Controller
-{ 
-    public function index(Request $request, $province_id = null, $min_price = 0, $max_price = PHP_INT_MAX, $name = null)
+{
+    public function index(Request $request)
     {
         $perPage = $request->query('per_page', 15);
+        $province_id = $request->query('province_id', null);
+        $min_price = $request->query('min_price', 0);
+        $max_price = $request->query('max_price', PHP_INT_MAX);
+        $name = $request->query('name', null); 
+
         $restaurants = DB::table('restaurants as r')
             ->leftJoin('users as c', 'c.id', '=', 'r.user_id')
             ->leftJoin('provinces as p', 'p.id', '=', 'r.province_id')
+            ->leftJoin('products as pr', 'pr.restaurant_id', '=', 'r.id') // Join with products table
             ->select(
                 'r.id as id',
                 'r.name as name',
@@ -28,7 +34,7 @@ class RestaurantController extends Controller
                 'r.description as description',
                 'r.image as thumbnail',
                 'r.open_at as open_at',
-                'r.close_at as close_at',
+                'r.close_at as close_at'
             );
 
         // Apply filters if provided
@@ -36,9 +42,10 @@ class RestaurantController extends Controller
             $restaurants->where('r.province_id', $province_id);
         }
 
-        // if ($min_price || $max_price < PHP_INT_MAX) {
-        //     $hotels->whereBetween('r.price_per_night', [$min_price, $max_price]);
-        // }
+        // Apply price range filter
+        if ($min_price || $max_price < PHP_INT_MAX) {
+            $restaurants->whereBetween('pr.price_per_night', [$min_price, $max_price]); // Adjust the price column if needed
+        }
 
         if ($name) {
             $restaurants->where(DB::raw('LOWER(r.name)'), 'like', '%' . strtolower($name) . '%');
@@ -54,9 +61,10 @@ class RestaurantController extends Controller
         return $this->successResponse($restaurants);
     }
 
+
     public function store(Request $request)
     {
-
+        DB::beginTransaction(); // Start the transaction
 
         try {
             $data = array_merge($request->all(), [
@@ -77,7 +85,7 @@ class RestaurantController extends Controller
 
             // Handle image upload if present
             if ($request->hasFile('image')) {
-                $imagePath = $request->file('image')->store('restaurants', 'public');
+                $imagePath = $request->file('image')->store('restaurant/thumbnails', 'public');
                 $data['image'] = $imagePath;
             } else {
                 $data['image'] = null;
@@ -86,18 +94,16 @@ class RestaurantController extends Controller
             $existingRestaurant = Restaurant::where('user_id', $request->user()->id)->first();
             $user = User::where('id', $request->user()->id)->first();
 
-            if ($user->user_type === 'restaurant' && $existingRestaurant) {
-                return $this->errorResponse('User already own a restaurant.', 400);
+            if (($user->user_type === 'restaurant' || $user->user_type === 'hotel') && $existingRestaurant) {
+                return $this->errorResponse('User already owns a restaurant or hotel.', 400);
             }
 
-
-            DB::beginTransaction();
-            $restaurant = Restaurant::create($data);
+            Restaurant::create($data);
             $user->update(['user_type' => 'restaurant']);
             // Commit the transaction
             DB::commit();
 
-            return $this->successResponse($restaurant, 201);
+            return $this->successResponse("Restaurant created successfully", 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack(); // Rollback the transaction on validation error
             return $this->errorResponse(['errors' => $e->errors()], 422);
@@ -183,9 +189,8 @@ class RestaurantController extends Controller
         if (!$restaurant) {
             return $this->errorResponse('Restaurant not found', 404);
         }
- 
-        try 
-        {
+
+        try {
 
             DB::beginTransaction();
 
@@ -200,7 +205,7 @@ class RestaurantController extends Controller
             return $this->successResponse('Restaurant deleted successfully');
         } catch (\Exception $e) {
             DB::rollBack();
-            return $this->errorResponse( 'Failed to delete restaurant.' , 500);
+            return $this->errorResponse('Failed to delete restaurant.', 500);
         }
     }
 

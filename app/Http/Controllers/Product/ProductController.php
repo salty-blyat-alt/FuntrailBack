@@ -14,9 +14,13 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = Product::with('restaurant', 'orderDetails')->get();
-        return response()->json($products);
+        // Retrieve all products
+        $products = Product::all();
+
+        // Return success response with products
+        return $this->successResponse($products);
     }
+
 
     /**
      * Store a newly created resource in storage.
@@ -28,12 +32,12 @@ class ProductController extends Controller
             'quantity' => 'required|integer|min:1',
             'price' => 'required|numeric',
             'restaurant_id' => 'required|integer|exists:restaurants,id',
-            'image' => 'nullable|string', // Assuming image is stored as a URL or Base64 string
+            'image' => 'nullable|string',
         ]);
 
         $product = Product::create($request->all());
 
-        return response()->json($product, Response::HTTP_CREATED);
+        return $this->successResponse($product, Response::HTTP_CREATED);
     }
 
     /**
@@ -42,7 +46,7 @@ class ProductController extends Controller
     public function show(string $id)
     {
         $product = Product::with('restaurant', 'orderDetails')->findOrFail($id);
-        return response()->json($product);
+        return $this->successResponse($product);
     }
 
     /**
@@ -55,13 +59,13 @@ class ProductController extends Controller
             'quantity' => 'required|integer|min:1',
             'price' => 'required|numeric',
             'restaurant_id' => 'required|integer|exists:restaurants,id',
-            'image' => 'nullable|string', // Assuming image is stored as a URL or Base64 string
+            'image' => 'nullable|string',
         ]);
 
         $product = Product::findOrFail($id);
         $product->update($request->all());
 
-        return response()->json($product);
+        return $this->successResponse($product);
     }
 
     /**
@@ -69,9 +73,22 @@ class ProductController extends Controller
      */
     public function destroy(string $id)
     {
-        $product = Product::findOrFail($id);
+        $products = Product::where('restaurant', $id);
         $product->delete();
 
-        return response()->json(null, Response::HTTP_NO_CONTENT);
+        return $this->successResponse(null, Response::HTTP_NO_CONTENT);
+    }
+
+    public function menu(string $id)
+    {
+
+        $products = Product::where('restaurant_id', $id)->get();
+
+        // Check if products were found
+        if ($products->isEmpty()) {
+            return $this->errorResponse('No products found for this restaurant.', Response::HTTP_NOT_FOUND);
+        }
+
+        return $this->successResponse($products, Response::HTTP_NO_CONTENT);
     }
 }
