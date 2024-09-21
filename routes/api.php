@@ -12,7 +12,7 @@ use App\Http\Controllers\User\UserController;
                         ================================
                         ||     Level of user types    ||
                         ================================
-                        //- admin                     || 
+                        ||- admin                     || 
                         ||- restaurant  \   hotel     ||       
                         ||- customer                  ||      
                         ================================

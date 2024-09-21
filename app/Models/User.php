@@ -5,12 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Cashier\Billable;
 use Laravel\Sanctum\HasApiTokens; 
 
 
 class User extends Model
 {
-    use HasApiTokens, HasFactory, Notifiable; 
+    use Billable, HasApiTokens, HasFactory, Notifiable; 
     /**
      * The attributes that are mass assignable.
      *
