@@ -93,3 +93,7 @@ Route::prefix('popular')->group(function () {
     // work on this
     Route::get('restaurants', [RestaurantController::class, 'popular']);
 });
+
+Route::get('test', function () {
+    return 'test';
+});
