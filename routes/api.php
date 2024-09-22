@@ -4,7 +4,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Book\BookController;
 use App\Http\Controllers\Hotel\HotelController;
 use App\Http\Controllers\Product\ProductController;
-use Illuminate\Support\Facades\Route; 
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Restaurant\RestaurantController;
 use App\Http\Controllers\Room\RoomController;
 use App\Http\Controllers\User\UserController;
@@ -24,9 +24,9 @@ use App\Http\Controllers\User\UserController;
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
-    Route::post('forgot-password',[AuthController::class, 'forgotPassword'])->name('password.email');
-    Route::post('reset-password',[AuthController::class, 'resetPassword'])->name('password.reset');
- 
+    Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('password.email');
+    Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('password.reset');
+
     /* protected routes */
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('profile', [UserController::class, 'profile']);
@@ -49,6 +49,7 @@ Route::middleware('auth:sanctum')->prefix('hotel')->group(function () {
     Route::post('book',                     [BookController::class, 'book']);
 });
 
+
 // protected routes
 Route::middleware('auth:sanctum')->prefix('restaurant')->group(function () {
     Route::get('list',                      [RestaurantController::class, 'index']);
@@ -57,7 +58,8 @@ Route::middleware('auth:sanctum')->prefix('restaurant')->group(function () {
     Route::post('delete',                   [RestaurantController::class, 'destroy']);
     Route::get('show/{id}',                 [RestaurantController::class, 'show']);
     // product/id is hotel_id
-    Route::get('products/{id}',             [ProductController::class, 'menu']);
+    Route::get('menu/{id}',                 [ProductController::class, 'menu']);
+    Route::post('menu/add-item',            [ProductController::class, 'addItem']);
     // Route::post('checkout',              [RestaurantController::class, 'checkout']);
 });
 
@@ -66,10 +68,9 @@ Route::middleware('auth:sanctum')->prefix('product')->group(function () {
     Route::post('create',                   [ProductController::class, 'store']);
     Route::post('update',                   [ProductController::class, 'update']);
     Route::post('delete',                   [ProductController::class, 'destroy']);
-    Route::get('show/{id}',                 [ProductController::class, 'show']); 
-    
+    Route::get('show/{id}',                 [ProductController::class, 'show']);
 });
- 
+
 
 // protected routes
 Route::middleware('auth:sanctum')->prefix('user')->group(function () {

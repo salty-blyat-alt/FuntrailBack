@@ -19,7 +19,7 @@ class RestaurantController extends Controller
         $province_id = $request->query('province_id', null);
         $min_price = $request->query('min_price', 0);
         $max_price = $request->query('max_price', PHP_INT_MAX);
-        $name = $request->query('name', null); 
+        $name = $request->query('name', null);  
 
         $restaurants = DB::table('restaurants as r')
             ->leftJoin('users as c', 'c.id', '=', 'r.user_id')
@@ -79,7 +79,6 @@ class RestaurantController extends Controller
             if ($validator->fails()) {
                 // Convert validation messages to an array
                 $errors = $validator->errors()->toArray();
-                info($errors);
                 return $this->errorResponse('Validation failed', 422, $errors);
             }
 

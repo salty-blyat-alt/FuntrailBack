@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Product;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\Restaurant;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -71,13 +72,7 @@ class ProductController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
-    {
-        $products = Product::where('restaurant', $id);
-        $product->delete();
-
-        return $this->successResponse(null, Response::HTTP_NO_CONTENT);
-    }
+    public function destroy(string $id) {}
 
     public function menu(string $id)
     {
@@ -90,5 +85,49 @@ class ProductController extends Controller
         }
 
         return $this->successResponse($products, Response::HTTP_NO_CONTENT);
+    }
+
+    public function addItem(Request $request)
+    {
+        // Retrieve the restaurant associated with the authenticated user
+        $restaurant = Restaurant::where('user_id', $request->user()->id)->first();
+
+        // Check if the restaurant exists
+        if (!$restaurant) {
+            return $this->successResponse('Restaurant not found', 404);
+        }
+
+        $restaurant_id = $restaurant->id;
+
+        // Validate the incoming request
+        $request->validate([
+            'items' => 'required|array',
+                    'items.*.name'          => 'required|string|max:255',
+                    'items.*.is_instock'    => 'boolean',
+                    'items.*.price'         => 'required|numeric|min:0',
+                    'items.*.image'         => 'nullable|file|mimes:jpeg,png,jpg', 
+        ]);
+
+        $createdItems = []; // Array to hold created items
+
+        // Loop through each item in the items array
+        foreach ($request->items as $itemData) {
+            // Upload the image and get the path
+            $imagePath = uploadDocument($itemData['image'], 'restaurants/r-' . $restaurant_id);
+
+            // Create a new product
+            $item = Product::create([
+                'name' => $itemData['name'],
+                'is_instock' => $itemData['is_instock'] ?? true,
+                'price' => $itemData['price'],
+                'restaurant_id' => $restaurant_id,
+                'image' => $imagePath, 
+            ]);
+
+            $createdItems[] = $item;
+        }
+
+        // Return a success response with the created items
+        return $this->successResponse($createdItems, 201);
     }
 }

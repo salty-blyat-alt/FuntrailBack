@@ -15,7 +15,7 @@ class Product extends Model
      */
     protected $fillable = [
         'name',
-        'quantity',
+        'is_instock',
         'price',
         'restaurant_id',
         'image',
@@ -27,8 +27,8 @@ class Product extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'quantity' => 'integer', // Ensures quantity is treated as an integer
-        'price' => 'decimal:2', // Ensures price is treated as a decimal with 2 decimal points
+        'is_instock' => 'boolean', 
+        'price' => 'decimal:2',  
     ];
 
     /**

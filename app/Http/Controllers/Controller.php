@@ -92,6 +92,19 @@ abstract class Controller
         ];
     }
 
+    public function productRules()
+    {
+        return [
+            'name'             => 'required|string|max:255',
+            'is_instock'       => 'boolean',
+            'price'            => 'required|numeric|min:0',
+            'restaurant_id'    => 'string',
+            'image'            => 'nullable|file|mimes:jpeg,png,jpg',
+        ];
+    }
+
+
+
     public function userRules()
     {
         return [
@@ -102,7 +115,7 @@ abstract class Controller
             'province_id'       => 'nullable|numeric',
             'balance'           => 'sometimes|numeric',
             'phone_number'      => 'nullable|string|max:15',
-            'profile_img'       => 'nullable|string', 
+            'profile_img'       => 'nullable|string',
         ];
     }
 
@@ -115,7 +128,7 @@ abstract class Controller
             'address'       => 'required|string',
             'description'   => 'string',
             'phone_number'  => 'string',
-            'image'         => 'nullable|file|mimes:jpeg,png,jpg', 
+            'image'         => 'nullable|file|mimes:jpeg,png,jpg',
             'open_at'       => 'required|string',
             'close_at'      => 'required|string',
         ];
