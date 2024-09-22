@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use App\Notifications\ResetPasswordNotification;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
+use Illuminate\Foundation\Auth\User as Authenticatable; 
+use Illuminate\Database\Eloquent\Factories\HasFactory; 
 use Illuminate\Notifications\Notifiable;
 use Laravel\Cashier\Billable;
 use Laravel\Sanctum\HasApiTokens; 
 
 
-class User extends Model
+class User extends Authenticatable implements CanResetPasswordContract
 {
     use Billable, HasApiTokens, HasFactory, Notifiable; 
     /**
@@ -64,4 +67,10 @@ class User extends Model
     protected $casts = [
         'email_verified_at' => 'datetime:H:i:s',
     ];
+
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new ResetPasswordNotification($token));
+    }
+
 }
