@@ -22,10 +22,10 @@ use App\Http\Controllers\User\UserController;
 
 // Authentication Routes
 Route::prefix('auth')->group(function () {
-    Route::post('register', [AuthController::class, 'register']);
-    Route::post('login', [AuthController::class, 'login']);
-    Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('password.email');
-    Route::post('reset-password', [AuthController::class, 'resetPassword'])->name('password.reset');
+    Route::post('register',         [AuthController::class, 'register']);
+    Route::post('login',            [AuthController::class, 'login']);
+    Route::post('forgot-password',  [AuthController::class, 'forgotPassword'])->name('password.email');
+    Route::post('reset-password',   [AuthController::class, 'resetPassword'])->name('password.reset');
 
     /* protected routes */
     Route::middleware('auth:sanctum')->group(function () {
@@ -57,10 +57,12 @@ Route::middleware('auth:sanctum')->prefix('restaurant')->group(function () {
     Route::post('update',                   [RestaurantController::class, 'update']);
     Route::post('delete',                   [RestaurantController::class, 'destroy']);
     Route::get('show/{id}',                 [RestaurantController::class, 'show']);
-    // product/id is hotel_id
+
     Route::get('menu/{id}',                 [ProductController::class, 'menu']);
     Route::post('menu/add-item',            [ProductController::class, 'addItem']);
     Route::post('menu/toggle-stock',        [ProductController::class, 'toggleItemStock']);
+    Route::post('menu/remove-stock',        [ProductController::class, 'removeItemStock']);
+    Route::post('checkout',                 [RestaurantController::class, 'checkout']);
     // Route::post('checkout',              [RestaurantController::class, 'checkout']);
 });
 

@@ -153,4 +153,75 @@ class ProductController extends Controller
         // Return a success response with the updated item
         return $this->successResponse($item);
     }
+
+    public function removeItemStock(Request $request)
+    {
+        // Retrieve the restaurant associated with the authenticated user
+        $restaurant = Restaurant::where('user_id', $request->user()->id)->first();
+
+        // Check if the restaurant exists
+        if (!$restaurant) {
+            return $this->errorResponse('Restaurant not found', 404);
+        }
+
+        // Validate the incoming request
+        $request->validate([
+            'item_id' => 'required|integer|exists:products,id',
+        ]);
+
+        // Retrieve the product by its ID
+        $item = Product::find($request->item_id);
+
+        // Check if the product exists and belongs to the restaurant
+        if (!$item || $item->restaurant_id !== $restaurant->id) {
+            return $this->errorResponse('Product not found or does not belong to your restaurant', 404);
+        }
+
+        // Delete the product
+        $item->delete();
+
+        // Return a success response
+        return $this->successResponse('Product removed successfully.', 200);
+    }
+
+    public function checkout(Request $request)
+    {
+        // Validate the incoming request
+        $request->validate([
+            'items' => 'required|array',
+            'items.*.product_id'    => 'required|integer|exists:products,id',
+            'items.*.quantity'      => 'required|integer|min:1',
+            'restaurant_id'         => 'required|integer',
+            'user_id'               => 'required|integer',
+        ]);
+
+        // Retrieve the restaurant associated with the authenticated user
+        $restaurant = Restaurant::where('user_id', $request->user()->id)->first();
+
+        if (!$restaurant) {
+            return $this->errorResponse('Restaurant not found', 404);
+        }
+
+        // Process each item in the cart
+        foreach ($request->items as $item) {
+            $product = Product::find($item['product_id']);
+
+            // Check if the product is in stock
+            if (!$product->is_instock) {
+                return $this->errorResponse("Product {$product->name} is out of stock", 400);
+            }
+
+            // Check if the requested quantity is available
+            if ($item['quantity'] > $product->quantity) {
+                return $this->errorResponse("Not enough stock for {$product->name}", 400);
+            }
+
+            // Process the order (you can create an Order model if needed)
+            // Here you might want to update product stock, create order records, etc.
+            // Example: $product->decrement('quantity', $item['quantity']);
+        }
+
+        // Return a success response
+        return $this->successResponse(['message' => 'Checkout successful.'], 201);
+    }
 }
