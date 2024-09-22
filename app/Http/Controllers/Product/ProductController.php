@@ -102,10 +102,10 @@ class ProductController extends Controller
         // Validate the incoming request
         $request->validate([
             'items' => 'required|array',
-                    'items.*.name'          => 'required|string|max:255',
-                    'items.*.is_instock'    => 'boolean',
-                    'items.*.price'         => 'required|numeric|min:0',
-                    'items.*.image'         => 'nullable|file|mimes:jpeg,png,jpg', 
+            'items.*.name'          => 'required|string|max:255',
+            'items.*.is_instock'    => 'boolean',
+            'items.*.price'         => 'required|numeric|min:0',
+            'items.*.image'         => 'nullable|file|mimes:jpeg,png,jpg',
         ]);
 
         $createdItems = []; // Array to hold created items
@@ -121,13 +121,36 @@ class ProductController extends Controller
                 'is_instock' => $itemData['is_instock'] ?? true,
                 'price' => $itemData['price'],
                 'restaurant_id' => $restaurant_id,
-                'image' => $imagePath, 
+                'image' => $imagePath,
             ]);
 
             $createdItems[] = $item;
         }
 
         // Return a success response with the created items
-        return $this->successResponse($createdItems, 201);
+        return $this->successResponse($createdItems);
+    }
+
+    public function toggleItemStock(Request $request)
+    {
+        // Validate the incoming request
+        $request->validate([
+            'item_id' => 'required|integer|exists:products,id',
+        ]);
+
+        // Retrieve the product by its ID
+        $item = Product::find($request->item_id);
+
+        // Check if the product exists
+        if (!$item) {
+            return $this->errorResponse('Product not found', 404);
+        }
+
+        // Toggle the stock status
+        $item->is_instock = !$item->is_instock; // Toggle the current stock status
+        $item->save(); // Save the changes
+
+        // Return a success response with the updated item
+        return $this->successResponse($item);
     }
 }

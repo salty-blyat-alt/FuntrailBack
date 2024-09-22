@@ -60,6 +60,7 @@ Route::middleware('auth:sanctum')->prefix('restaurant')->group(function () {
     // product/id is hotel_id
     Route::get('menu/{id}',                 [ProductController::class, 'menu']);
     Route::post('menu/add-item',            [ProductController::class, 'addItem']);
+    Route::post('menu/toggle-stock',        [ProductController::class, 'toggleItemStock']);
     // Route::post('checkout',              [RestaurantController::class, 'checkout']);
 });
 
