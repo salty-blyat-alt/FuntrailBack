@@ -4,17 +4,13 @@ namespace App\Http\Controllers\Hotel;
 
 use App\Models\Hotel;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
-use App\Models\Booking;
-use App\Models\Commission;
+use App\Http\Controllers\Controller; 
 use App\Models\Province;
 use App\Models\Room;
 use App\Models\User;
-use Carbon\Carbon;
-use Exception;
+use Carbon\Carbon; 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
-use Symfony\Component\CssSelector\Node\FunctionNode;
+use Illuminate\Support\Facades\Validator; 
 
 class HotelController extends Controller
 {

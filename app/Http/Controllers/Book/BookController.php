@@ -12,6 +12,8 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Stripe\PaymentIntent;
+use Stripe\Stripe;
 
 class BookController extends Controller
 {
@@ -36,9 +38,8 @@ class BookController extends Controller
         $date_end = Carbon::createFromFormat('d/m/Y', $request->date_end)->format('Y-m-d');
 
 
-        // Check room availability
-
-        if (!$this->isRoomAvailable($request->room_ids, $request->hotel_id)) {
+        // Check room availability 
+        if (!$this->isRoomAvailable($request->room_ids, $date_start, $date_end, $request->hotel_id)) {
             return $this->errorResponse('No rooms available');
         }
 
@@ -70,9 +71,11 @@ class BookController extends Controller
                 }
             }
 
-
             $total_commission = $total_cost * 0.05;
             $total_cost = ($total_cost * 0.05) + $total_cost;
+
+            // stripe only accept int
+            $payment_intend = $this->stripePay($total_cost, $request->user()->id, $request->hotel_id, $request->room_ids);
 
             Commission::create([
                 'user_id' => $customer_id,
@@ -89,7 +92,6 @@ class BookController extends Controller
                 return $this->errorResponse('Insufficient balance', 400);
             }
 
-
             $bookings = $this->saveRecords($request->room_ids, $request->hotel_id, $customer_id, $date_start, $date_end, $uuid);
 
 
@@ -100,7 +102,11 @@ class BookController extends Controller
 
             DB::commit();
 
-            return $this->successResponse($bookings);
+            return $this->successResponse([
+                'result' => $bookings,
+                'client_secret' => $payment_intend->client_secret,
+                'intend_id' => $payment_intend->id
+            ]);
         } catch (Exception $e) {
             DB::rollBack();
             return $this->errorResponse($e->getMessage());
@@ -108,17 +114,27 @@ class BookController extends Controller
         return $this->successResponse($bookings);
     }
 
-    // work done (chain with "book" func)
-    public function isRoomAvailable($room_ids, $hotel_id)
+    public function isRoomAvailable($room_ids, $date_start, $date_end, $hotel_id)
     {
 
         foreach ($room_ids as $room_id) {
-            $room = Room::where('hotel_id', $hotel_id)->where('id', $room_id)->where('status', 'free')->first();
+            $room = Room::where('hotel_id', $hotel_id)->where('id', $room_id)->first();
             if (!$room) {
                 return false;
             }
+            if ($room) {
+                return !Booking::where('room_id', $room_id)
+                    ->where(function ($query) use ($date_start, $date_end) {
+                        $query->whereBetween('date_start', [$date_start, $date_end])
+                            ->orWhereBetween('date_end', [$date_start, $date_end])
+                            ->orWhere(function ($query) use ($date_start, $date_end) {
+                                $query->where('date_start', '<=', $date_start)
+                                    ->where('date_end', '>=', $date_end);
+                            });
+                    })
+                    ->exists();
+            }
         }
-
         return true;
     }
 
@@ -151,6 +167,25 @@ class BookController extends Controller
             }
         }
 
-        return $bookings; // Return the array of bookings
+        return $bookings;
     }
+
+    public function stripePay($amount, $user_id, $hotel_id, $room_ids)
+    {
+        $total_cost_in_cents = intval($amount * 100);
+
+        // stripe
+        Stripe::setApiKey(env('STRIPE_SECRET'));
+        $paymentIntent = PaymentIntent::create([
+            'amount' => $total_cost_in_cents,
+            'currency' => 'usd',
+            'metadata' => [
+                'user_id'   => $user_id,
+                'hotel_id'  => $hotel_id,
+                'room_ids'  => json_encode($room_ids)
+            ]
+        ]);
+        return $paymentIntent;
+    }
+    
 }

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Restaurant\RestaurantController;
 use App\Http\Controllers\Room\RoomController;
 use App\Http\Controllers\User\UserController;
+use Illuminate\Http\Request;
 
 /* 
                         ================================
@@ -94,6 +95,26 @@ Route::prefix('popular')->group(function () {
     Route::get('restaurants', [RestaurantController::class, 'popular']);
 });
 
-Route::get('test', function () {
-    return 'test';
-});
+Route::get('/mock-checkout', function (Request $request) {
+    // Mock data for testing purposes
+    $stripePriceId = 'price_deluxe_album';
+    $quantity = 1;
+
+    // Simulated user data
+    $user = $request->user();
+    $userId = $user ? $user->id : null; // Mock user ID (null if not authenticated)
+    $userEmail = $user ? $user->email : 'guest@example.com'; // Mock user email
+
+    // Mockup response simulating a successful checkout session creation
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Mock checkout session created successfully.',
+        'mockData' => [
+            'userId' => $userId,
+            'userEmail' => $userEmail,
+            'stripePriceId' => $stripePriceId,
+            'quantity' => $quantity, 
+            'mockSessionId' => 'cs_test_mock_session_1234567890', // Mock session ID
+        ]
+    ]);
+})->name('mock-checkout');
