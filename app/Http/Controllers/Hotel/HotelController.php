@@ -70,7 +70,6 @@ class HotelController extends Controller
     {
         DB::beginTransaction();
         try {
-
             $validatedData = Validator::make(array_merge(
                 $request->all(),
                 [
@@ -106,7 +105,11 @@ class HotelController extends Controller
             $imagesJson = json_encode($imagesPaths);
             $validatedData = $validatedData->validated();
 
-            $hotel = Hotel::create([
+            // Get optional fields from request, default to null if not provided
+            $facilitiesJson = $request->facilities ? json_encode($request->facilities) : null;
+            $policiesJson = $request->policies ? json_encode($request->policies) : null;
+
+            Hotel::create([
                 'name'         => $validatedData['name'],
                 'user_id'      => $request->user()->id,
                 'province_id'  => $request->user()->province_id,
@@ -115,6 +118,8 @@ class HotelController extends Controller
                 'phone_number' => $request->user()->phone_number,
                 'thumbnail'    => $thumbnailPath ?? null,
                 'images'       => $imagesJson ?? null,
+                'facilities'   => $facilitiesJson,  // New field
+                'policies'     => $policiesJson,    // New field
                 'open_at'      => $validatedData['open_at'],
                 'close_at'     => $validatedData['close_at'],
             ]);
@@ -149,26 +154,27 @@ class HotelController extends Controller
         $close_at =  Carbon::parse($hotel->open_at)->format('H:i');
         $open_at =  Carbon::parse($hotel->close_at)->format('H:i');
 
-
-        $hotel = [
-            'id'        => $hotel->id,
-            'name'        => $hotel->name,
-            'owner'       => $owner,
-            'province'    => $province,
-            'address'     => $hotel->address,
-            'description' => $hotel->description,
-            'thumbnail'   => $hotel->thumbnail,
-            'images'      => $hotel->images,
-            'open_at'     => $open_at,
-            'close_at'    => $close_at,
+        $hotelData = [
+            'id'            => $hotel->id,
+            'name'          => $hotel->name,
+            'owner'         => $owner,
+            'province'      => $province,
+            'address'       => $hotel->address,
+            'description'   => $hotel->description,
+            'thumbnail'     => $hotel->thumbnail,
+            'images'        => $hotel->images,
+            'facilities'    => $hotel->facilities,  // New field
+            'policies'      => $hotel->policies,    // New field
+            'open_at'      => $open_at,
+            'close_at'     => $close_at,
         ];
-        return $this->successResponse($hotel);
+        return $this->successResponse($hotelData);
     }
 
 
     // work done
     public function update(Request $request)
-    {
+    { 
         $user_id = $request->user()->id;
 
         $hotel = Hotel::where('user_id', $user_id)->first();
@@ -178,10 +184,13 @@ class HotelController extends Controller
             return $this->errorResponse('Hotel failed to update');
         }
 
-        if (!$request->hasAny(['name', 'province_id', 'address', 'description', 'thumbnail', 'images', 'open_at', 'close_at'])) {
+        if (!$request->hasAny(['name', 'province_id', 'address', 'description', 'thumbnail', 'images', 'facilities', 'policies', 'open_at', 'close_at'])) {
             return $this->errorResponse('Hotel failed to update');
         }
 
+        // Get optional fields from request, default to null if not provided
+        $facilitiesJson = $request->facilities ? json_encode($request->facilities) : null;
+        $policiesJson = $request->policies ? json_encode($request->policies) : null;
 
         DB::table('hotels')->where('id', $hotel->id)->update([
             'name'         => $request->name          ?? $hotel->name,
@@ -191,6 +200,8 @@ class HotelController extends Controller
             'description'  => $request->description   ?? $hotel->description,
             'thumbnail'    => $request->thumbnail     ?? $hotel->thumbnail,
             'images'       => $request->images        ?? $hotel->images,
+            'facilities'   => $facilitiesJson         ?? $hotel->facilities, // New field
+            'policies'     => $policiesJson           ?? $hotel->policies,   // New field
             'open_at'      => $request->open_at       ?? $hotel->open_at,
             'close_at'     => $request->close_at      ?? $hotel->close_at,
         ]);

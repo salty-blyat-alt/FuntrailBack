@@ -54,22 +54,12 @@ class BookController extends Controller
             return $this->successResponse($bookings);
         }
 
-
         // for regular customer
         DB::beginTransaction();
         try {
             $total_cost = 0;
 
-            // Calculate total cost first
-            foreach ($request->room_ids as $room_id) {
-                $room = Room::find($room_id);
-                if ($room) {
-                    $total_cost += $room->price_per_night;
-                } else {
-                    DB::rollBack();
-                    return $this->errorResponse('Room not found', 404);
-                }
-            }
+            $total_cost = $this->calculateTotalCost($request->room_ids);
 
             $total_commission = $total_cost * 0.05;
             $total_cost = ($total_cost * 0.05) + $total_cost;
@@ -85,7 +75,6 @@ class BookController extends Controller
                 'total_commission' => $total_commission,
             ]);
 
-
             // Check user balance before saving records
             if ($request->user()->balance < $total_cost) {
                 DB::rollBack();
@@ -94,10 +83,8 @@ class BookController extends Controller
 
             $bookings = $this->saveRecords($request->room_ids, $request->hotel_id, $customer_id, $date_start, $date_end, $uuid);
 
-
             // Deduct balance after successful booking
             $request->user()->balance -= $total_cost;
-
             $request->user()->save();
 
             DB::commit();
@@ -139,7 +126,7 @@ class BookController extends Controller
     }
 
     // work done (chain with "book" func)
-    public function saveRecords($room_ids, $hotel_id, $customer_id, $date_start, $date_end, $uuid)
+    public function saveRecords($room_ids, $hotel_id, $customer_id, $date_start, $date_end, $uuid,)
     {
         $bookings = []; // Initialize bookings array
 
@@ -170,6 +157,22 @@ class BookController extends Controller
         return $bookings;
     }
 
+    public function calculateTotalCost(array $room_ids)
+    {
+        $total_cost = 0;
+
+        foreach ($room_ids as $room_id) {
+            $room = Room::find($room_id);
+            if ($room) {
+                $total_cost += $room->price_per_night;
+            } else {
+                throw new \Exception('Room not found for ID: ' . $room_id);
+            }
+        }
+
+        return $total_cost;
+    }
+
     public function stripePay($amount, $user_id, $hotel_id, $room_ids)
     {
         $total_cost_in_cents = intval($amount * 100);
@@ -183,9 +186,12 @@ class BookController extends Controller
                 'user_id'   => $user_id,
                 'hotel_id'  => $hotel_id,
                 'room_ids'  => json_encode($room_ids)
+            ],
+            'automatic_payment_methods' => [
+                'enabled' => true,
+                'allow_redirects' => 'never',
             ]
         ]);
         return $paymentIntent;
     }
-    
 }

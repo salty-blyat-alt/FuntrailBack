@@ -55,8 +55,13 @@ abstract class Controller
             'images.*'      => 'file|mimes:jpeg,png,jpg|max:2048',
             'open_at'       => 'required|string',
             'close_at'      => 'required|string',
+            'facilities'    => 'nullable|array',
+            'facilities.*'  => 'string', // Assuming facilities are strings
+            'policies'      => 'nullable|array',
+            'policies.*'    => 'string', // Assuming policies are strings
         ];
     }
+
 
     public function bookingRules()
     {
