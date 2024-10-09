@@ -163,8 +163,8 @@ class HotelController extends Controller
             'description'   => $hotel->description,
             'thumbnail'     => $hotel->thumbnail,
             'images'        => $hotel->images,
-            'facilities'    => $hotel->facilities,  // New field
-            'policies'      => $hotel->policies,    // New field
+            'facilities'    => $hotel->facilities,
+            'policies'      => $hotel->policies,  
             'open_at'      => $open_at,
             'close_at'     => $close_at,
         ];
