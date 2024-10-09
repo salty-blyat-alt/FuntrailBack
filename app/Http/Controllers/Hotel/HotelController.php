@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Hotel;
 
 use App\Models\Hotel;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller; 
+use App\Http\Controllers\Controller;
 use App\Models\Province;
 use App\Models\Room;
 use App\Models\User;
-use Carbon\Carbon; 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator; 
+use Illuminate\Support\Facades\Validator;
 
 class HotelController extends Controller
 {
@@ -139,7 +139,7 @@ class HotelController extends Controller
             return $this->errorResponse(['errors' => $e->getMessage()], 500);
         }
     }
- 
+
 
     // work done
     public function show(string $id)
@@ -164,7 +164,7 @@ class HotelController extends Controller
             'thumbnail'     => $hotel->thumbnail,
             'images'        => $hotel->images,
             'facilities'    => $hotel->facilities,
-            'policies'      => $hotel->policies,  
+            'policies'      => $hotel->policies,
             'open_at'      => $open_at,
             'close_at'     => $close_at,
         ];
@@ -174,7 +174,7 @@ class HotelController extends Controller
 
     // work done
     public function update(Request $request)
-    { 
+    {
         $user_id = $request->user()->id;
 
         $hotel = Hotel::where('user_id', $user_id)->first();
@@ -251,12 +251,38 @@ class HotelController extends Controller
             ->select(
                 'h.id as hotel_id',
                 'h.name as hotel_name',
-                DB::raw('count(*) as popular_point')
+                'h.id',
+                'h.user_id',
+                'h.province_id',
+                'h.address',
+                'h.description',
+                'h.thumbnail',
+                'h.images',
+                'h.open_at',
+                'h.close_at',
+                'h.created_at',
+                'h.updated_at',
+                'h.facilities',
+                'h.policies',
+                DB::raw('count(b.id) as popular_point')
             )
             ->groupBy(
                 'h.id',
-                'h.name'
+                'h.name',
+                'h.user_id',
+                'h.province_id',
+                'h.address',
+                'h.description',
+                'h.thumbnail',
+                'h.images',
+                'h.open_at',
+                'h.close_at',
+                'h.created_at',
+                'h.updated_at',
+                'h.facilities',
+                'h.policies'
             )
+            ->orderByDesc('popular_point')
             ->get();
 
         return $this->successResponse($hotelBookings);
