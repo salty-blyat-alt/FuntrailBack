@@ -27,17 +27,10 @@ class HotelController extends Controller
             ->leftJoin('users as c', 'c.id', '=', 'h.user_id')
             ->leftJoin('rooms as r', 'r.hotel_id', '=', 'h.id')
             ->leftJoin('provinces as p', 'p.id', '=', 'h.province_id')
-            ->select(
-                'h.id as id',
-                'h.name as name',
+            ->select( 
                 'c.username as owner',
                 'p.name as province',
-                'h.address as address',
-                'h.description as description',
-                'h.thumbnail as thumbnail',
-                'h.images as images',
-                'h.open_at as open_at',
-                'h.close_at as close_at',
+                'h.*', 
                 DB::raw('CASE WHEN COUNT(r.id) > 0 THEN "available" ELSE "not available" END as is_available')
             );
 
