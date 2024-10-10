@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Hotel extends Model
 {
-    
+
     use HasFactory;
 
     /**
@@ -19,11 +19,11 @@ class Hotel extends Model
 
     protected $fillable = [
         'name',
-        'user_id', 
+        'user_id',
         'province_id',
         'address',
-        'description', 
-         'thumbnail',
+        'description',
+        'thumbnail',
         'images',
         'open_at',
         'close_at'
@@ -41,7 +41,7 @@ class Hotel extends Model
 
     /**
      * Get the bookings for the hotel.
-     */  
+     */
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -50,6 +50,5 @@ class Hotel extends Model
     public function province()
     {
         return $this->belongsTo(Province::class, 'province_id', 'id');
-    } 
-    
+    }
 }

@@ -8,6 +8,14 @@ use Illuminate\Database\Eloquent\Model;
 class Province extends Model
 {
     use HasFactory;
+    
+    public $timestamps = false;
+
+    protected $fillable = [
+        'name',  
+        'img', 
+    ];
+
 
     /**
      * Get the hotels for the province.

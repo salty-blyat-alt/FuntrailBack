@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Book\BookController;
 use App\Http\Controllers\Hotel\HotelController;
 use App\Http\Controllers\Product\ProductController;
+use App\Http\Controllers\ProvinceController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Restaurant\RestaurantController;
 use App\Http\Controllers\Room\RoomController;
@@ -48,6 +49,12 @@ Route::middleware('auth:sanctum')->prefix('hotel')->group(function () {
     Route::post('delete-room',              [RoomController::class, 'deleteRooms']);
 
     Route::post('book',                     [BookController::class, 'book']);
+});
+Route::middleware('auth:sanctum')->prefix('province')->group(function () {
+    // work done
+    Route::get('list',                      [ProvinceController::class, 'index']);
+    Route::post('update/{id}',              [ProvinceController::class, 'update']);
+
 });
 
 

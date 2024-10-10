@@ -17,7 +17,7 @@ class HotelController extends Controller
     // work done
     public function index(Request $request)
     {
-        $perPage = $request->query('per_page', 15);
+        $perPage = $request->query('per_page', 10);
         $province_id = $request->query('province_id', null);
         $min_price = $request->query('min_price', 0);
         $max_price = $request->query('max_price', PHP_INT_MAX);
@@ -42,6 +42,10 @@ class HotelController extends Controller
         if ($min_price || $max_price < PHP_INT_MAX) {
             $hotels->whereBetween('r.price_per_night', [$min_price, $max_price]);
         }
+
+        // if() {
+
+        // }
 
         if ($name) {
             $hotels->where(DB::raw('LOWER(h.name)'), 'like', '%' . strtolower($name) . '%');
