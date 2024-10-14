@@ -17,7 +17,8 @@ class Room extends Model
     protected $fillable = [
         'hotel_id',
         'room_type',
-        'price_per_night' 
+        'price_per_night', 
+        'status', 
     ];
 
     /**
@@ -28,6 +29,7 @@ class Room extends Model
     protected $casts = [
         'hotel_id' => 'int',
         'room_type' => 'string',
+        'status' => 'string',
         'price_per_night' => 'float'
     ];
 
@@ -38,4 +40,8 @@ class Room extends Model
     {
         return $this->belongsTo(Hotel::class);
     } 
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class, 'room_id');
+    }
 }

@@ -35,10 +35,11 @@ class UpdateRoomStatuses extends Command
 
         foreach ($rooms as $room) {
             $currentBooking = Booking::where('room_id', $room->id)
-                ->where('date_start', '<=', Carbon::now())
-                ->where('date_end', '>', Carbon::now())
-                ->first();
-
+            ->where('date_start', '<=', Carbon::now())
+            ->where('date_end', '>', Carbon::now())
+            ->first();
+            
+            echo($currentBooking);
             if ($currentBooking) {
                 $room->status = 'busy';
             } else {

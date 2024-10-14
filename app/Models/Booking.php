@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class Booking extends Model
 {
     use HasFactory;
+    protected $primaryKey = 'u_id';
+    
     /**
      * The attributes that are mass assignable.
      *
@@ -16,11 +18,13 @@ class Booking extends Model
     protected $fillable = [
         'id',
         'room_id',
+        'u_id', // Add u_id here
         'user_id',
         'hotel_id',
         'date_start',
-        'date_end', 
+        'date_end',
         'total',
+        'status'
     ];
 
     /**
@@ -29,9 +33,8 @@ class Booking extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'total' => 'decimal:2', 
+        'total' => 'decimal:2',
     ];
-
     /**
      * Get the hotel that owns the booking.
      */

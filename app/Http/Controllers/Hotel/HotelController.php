@@ -27,10 +27,10 @@ class HotelController extends Controller
             ->leftJoin('users as c', 'c.id', '=', 'h.user_id')
             ->leftJoin('rooms as r', 'r.hotel_id', '=', 'h.id')
             ->leftJoin('provinces as p', 'p.id', '=', 'h.province_id')
-            ->select( 
+            ->select(
                 'c.username as owner',
                 'p.name as province',
-                'h.*', 
+                'h.*',
                 DB::raw('CASE WHEN COUNT(r.id) > 0 THEN "available" ELSE "not available" END as is_available')
             );
 
@@ -43,10 +43,6 @@ class HotelController extends Controller
             $hotels->whereBetween('r.price_per_night', [$min_price, $max_price]);
         }
 
-        // if() {
-
-        // }
-
         if ($name) {
             $hotels->where(DB::raw('LOWER(h.name)'), 'like', '%' . strtolower($name) . '%');
         }
@@ -54,13 +50,17 @@ class HotelController extends Controller
         $hotels = $hotels
             ->groupBy('h.id', 'p.name', 'h.name', 'c.username', 'h.province_id', 'h.address', 'h.description', 'h.thumbnail', 'h.images', 'h.open_at', 'h.close_at')
             ->paginate($perPage);
+        foreach ($hotels as $hotel) {
+            $hotel->images = json_decode($hotel->images, true); // Decode JSON to array
+            $hotel->policies = json_decode($hotel->policies, true); // Decode JSON to array
+            $hotel->facilities = json_decode($hotel->facilities, true); // Decode JSON to array
+        }
 
         // Clean pagination if necessary
         $hotels = cleanPagination($hotels);
 
         return $this->successResponse($hotels);
     }
-
 
     // work done
     public function store(Request $request)
@@ -137,7 +137,6 @@ class HotelController extends Controller
         }
     }
 
-
     // work done
     public function show(string $id)
     {
@@ -197,8 +196,8 @@ class HotelController extends Controller
             'description'  => $request->description   ?? $hotel->description,
             'thumbnail'    => $request->thumbnail     ?? $hotel->thumbnail,
             'images'       => $request->images        ?? $hotel->images,
-            'facilities'   => $facilitiesJson         ?? $hotel->facilities, // New field
-            'policies'     => $policiesJson           ?? $hotel->policies,   // New field
+            'facilities'   => $facilitiesJson         ?? $hotel->facilities,
+            'policies'     => $policiesJson           ?? $hotel->policies,
             'open_at'      => $request->open_at       ?? $hotel->open_at,
             'close_at'     => $request->close_at      ?? $hotel->close_at,
         ]);
@@ -237,8 +236,6 @@ class HotelController extends Controller
             return $this->errorResponse(['message' => 'Failed to delete hotel.'], 500);
         }
     }
-
-
 
     public function popular()
     {
@@ -285,10 +282,5 @@ class HotelController extends Controller
         return $this->successResponse($hotelBookings);
     }
 
-    public function rooms($id)
-    {
-        $rooms = Room::where('hotel_id', $id)->get();
-
-        return $this->successResponse($rooms);
-    }
+  
 }

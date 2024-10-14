@@ -2,15 +2,14 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Book\BookController;
+use App\Http\Controllers\Dashboard\StatController;
 use App\Http\Controllers\Hotel\HotelController;
 use App\Http\Controllers\Product\ProductController;
 use App\Http\Controllers\ProvinceController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Restaurant\RestaurantController;
-use App\Http\Controllers\Room\RoomController;
-use App\Http\Controllers\User\UserController;
-use Illuminate\Http\Request;
-
+use App\Http\Controllers\Room\RoomController; 
+use App\Http\Controllers\User\UserController; 
 /* 
                         ================================
                         ||     Level of user types    ||
@@ -39,24 +38,22 @@ Route::prefix('auth')->group(function () {
 // protected routes
 Route::middleware('auth:sanctum')->prefix('hotel')->group(function () {
     // work done
-    Route::get('list',                      [HotelController::class, 'index']);
+    Route::get('list',                      [HotelController::class, 'index'])->withoutMiddleware('auth:sanctum');
     Route::post('create',                   [HotelController::class, 'store']);
     Route::post('update',                   [HotelController::class, 'update']);
     Route::post('delete',                   [HotelController::class, 'destroy']);
-    Route::get('show/{id}',                 [HotelController::class, 'show']);
-    Route::get('rooms/{id}',                [HotelController::class, 'rooms']);
+    Route::get('show/{id}',                 [HotelController::class, 'show'])->withoutMiddleware('auth:sanctum');
+    Route::get('rooms/{id}',                [RoomController::class, 'rooms'])->withoutMiddleware('auth:sanctum');
     Route::post('add-room',                 [RoomController::class, 'addRooms']);
-    Route::post('delete-room',              [RoomController::class, 'deleteRooms']);
+    Route::post('delete-room',              [RoomController::class, 'deleteRoom']);
 
     Route::post('book',                     [BookController::class, 'book']);
 });
+// work done
 Route::middleware('auth:sanctum')->prefix('province')->group(function () {
-    // work done
-    Route::get('list',                      [ProvinceController::class, 'index']);
+    Route::get('list',                      [ProvinceController::class, 'index'])->withoutMiddleware('auth:sanctum');
     Route::post('update/{id}',              [ProvinceController::class, 'update']);
-
 });
-
 
 // protected routes
 Route::middleware('auth:sanctum')->prefix('restaurant')->group(function () {
@@ -92,7 +89,13 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('show/{id}',     [UserController::class, 'show']);
 });
 
-
+Route::middleware('auth:sanctum')->prefix('dashboard')->group(function () {
+    Route::get('week',              [StatController::class, 'getTotalSalesThisWeek']);
+    Route::get('month',             [StatController::class, 'getTotalSalesThisMonth']);
+    Route::get('pending',           [StatController::class, 'pendingOrders']);
+    Route::get('history',           [StatController::class, 'ordersHistory']);
+    
+});
 Route::prefix('popular')->group(function () {
     // work done
     Route::get('hotels', [HotelController::class, 'popular']);
@@ -101,27 +104,4 @@ Route::prefix('popular')->group(function () {
     // work on this
     Route::get('restaurants', [RestaurantController::class, 'popular']);
 });
-
-Route::get('/mock-checkout', function (Request $request) {
-    // Mock data for testing purposes
-    $stripePriceId = 'price_deluxe_album';
-    $quantity = 1;
-
-    // Simulated user data
-    $user = $request->user();
-    $userId = $user ? $user->id : null; // Mock user ID (null if not authenticated)
-    $userEmail = $user ? $user->email : 'guest@example.com'; // Mock user email
-
-    // Mockup response simulating a successful checkout session creation
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Mock checkout session created successfully.',
-        'mockData' => [
-            'userId' => $userId,
-            'userEmail' => $userEmail,
-            'stripePriceId' => $stripePriceId,
-            'quantity' => $quantity, 
-            'mockSessionId' => 'cs_test_mock_session_1234567890', // Mock session ID
-        ]
-    ]);
-})->name('mock-checkout');
+ 

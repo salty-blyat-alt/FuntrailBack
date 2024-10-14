@@ -36,7 +36,7 @@ class AuthController extends Controller
                 'username' => $validatedData['username'],
                 'email' => $validatedData['email'],
                 'user_type' => 'customer',
-                'province_id' => $validatedData['province_id'],
+                'province_id' => $validatedData['province_id']??null,
                 'phone_number' => $validatedData['phone_number'],
                 'profile_img' => $imgPath ?? null,
                 'password' => Hash::make($validatedData['password'])

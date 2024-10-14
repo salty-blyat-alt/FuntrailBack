@@ -26,7 +26,7 @@ abstract class Controller
             'result'            => false,
             'result_code'       => $statusCode,
             'result_message'    => $message,
-            'body'              => null,
+            'body'              => "fail",
         ], $statusCode);
     }
 
@@ -36,7 +36,7 @@ abstract class Controller
             'username'      => 'required|string',
             'email'         => 'required|string|email|unique:users',
             'password'      => 'required|string|min:8',
-            'province_id'   => 'nullable|integer',
+            'province_id'   => 'integer',
             'phone_number'  => 'required|string',
             'profile_img'   => 'nullable|file|mimes:jpeg,png,jpg',
         ];
@@ -68,6 +68,7 @@ abstract class Controller
         return [
             'room_ids'     => 'required|array',
             'hotel_id'     => 'required|int',
+            'status'       =>  'string',
             'room_ids.*'   => 'required|int',
             'date_start'   => 'required|date_format:d/m/Y',
             'date_end'     => 'required|date_format:d/m/Y|after_or_equal:date_start',
@@ -81,7 +82,7 @@ abstract class Controller
             'hotel_id'              => 'required|int',
             'room_type'             => 'required|int',
             'user_id'               => 'required|int',
-            'status'                => 'required|string',
+            'status'                => ' string',
             'price_per_night'       => 'required|numeric'
         ];
     }
