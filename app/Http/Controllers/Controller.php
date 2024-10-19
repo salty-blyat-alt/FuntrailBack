@@ -80,10 +80,11 @@ abstract class Controller
     {
         return [
             'hotel_id'              => 'required|int',
-            'room_type'             => 'required|int',
+            'room_type'             => 'required|string',
             'user_id'               => 'required|int',
             'status'                => ' string',
-            'price_per_night'       => 'required|numeric'
+            'price_per_night'       => 'required|numeric',
+            'img'                   => 'string'
         ];
     }
 

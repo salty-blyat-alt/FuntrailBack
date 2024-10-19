@@ -20,6 +20,7 @@ class BookController extends Controller
     {
         // dd($request->all());
         $validatedData = Validator::make($request->all(), $this->bookingRules());
+
         if ($validatedData->fails()) {
             info($validatedData->messages());
             return $this->errorResponse('Fail to book');
@@ -41,6 +42,7 @@ class BookController extends Controller
 
         // Check if the user is the owner of the hotel 
         $isHotelOwner = ($user_type === 'hotel' && $hotel->user_id === $customer_id && $hotel->id === $request->hotel_id);
+        // dd($isHotelOwner);
         if ($isHotelOwner) {
             $roomIds = $request->room_ids;
             $rooms = Room::whereIn('id', $roomIds)->get();
@@ -48,7 +50,7 @@ class BookController extends Controller
                 $room->status = 'busy';
                 $room->save();
             }
-            $bookings = $this->saveRecords($request->room_ids, $request->hotel_id, $customer_id, $date_start, $date_end, $uuid);
+            $bookings = $this->saveRecords($request->room_ids, $request->hotel_id, $customer_id, $date_start, $date_end, $uuid, $isHotelOwner);
             return $this->successResponse($bookings);
         }
 
@@ -80,7 +82,7 @@ class BookController extends Controller
                 return $this->errorResponse('Insufficient balance', 400);
             }
 
-            $bookings = $this->saveRecords($request->room_ids, $request->hotel_id, $customer_id, $date_start, $date_end, $uuid, true);
+            $bookings = $this->saveRecords($request->room_ids, $request->hotel_id, $customer_id, $date_start, $date_end, $uuid, $isHotelOwner);
 
             // Deduct balance after successful booking
             $request->user()->balance -= $total_cost;
@@ -98,6 +100,7 @@ class BookController extends Controller
         }
         return $this->successResponse($bookings);
     }
+
     public function isRoomAvailable($room_ids, $date_start, $date_end, $hotel_id)
     {
         foreach ($room_ids as $room_id) {
@@ -142,18 +145,14 @@ class BookController extends Controller
                     'date_start' => $date_start,
                     'date_end' => $date_end,
                     'total' => $room->price_per_night,
+                    'status' => $isByOwner ? 'completed' : 'pending',
                 ];
-
-                if ($isByOwner) {
-                    $bookingData['status'] = 'completed';
-                }
 
                 $booking = Booking::create($bookingData);
                 $booking->id = $uuid;
                 $bookings[] = $booking;
             }
         }
-
         return $bookings;
     }
 
@@ -194,7 +193,7 @@ class BookController extends Controller
                     ],
                     'quantity' => 1,
                 ]],
-                'success_url' => env('FRONTEND_URL') . '?session_id={CHECKOUT_SESSION_ID}', // Include session ID in the success URL
+                'success_url' => env('FRONTEND_URL') . '?session_id={CHECKOUT_SESSION_ID}',
                 'mode' => 'payment',
                 'metadata' => [
                     'user_id' => $user_id,
@@ -202,8 +201,6 @@ class BookController extends Controller
                     'room_ids' => json_encode($room_ids),
                 ],
             ]);
-
-
 
             return [
                 'status' => 'success',

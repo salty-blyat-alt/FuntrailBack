@@ -19,6 +19,7 @@ class Room extends Model
         'room_type',
         'price_per_night', 
         'status', 
+        'img', 
     ];
 
     /**
@@ -30,7 +31,8 @@ class Room extends Model
         'hotel_id' => 'int',
         'room_type' => 'string',
         'status' => 'string',
-        'price_per_night' => 'float'
+        'price_per_night' => 'float',
+        'img' => 'string'
     ];
 
     /**

@@ -17,12 +17,8 @@ class ProvinceController extends Controller
             ->get();
 
         // Return the provinces as a JSON response
-        return response()->json($provinces);
-    }
-
-
-
-
+        return $this->successResponse($provinces);
+    } 
     /**
      * Display a listing of the resource.
      */
@@ -78,4 +74,5 @@ class ProvinceController extends Controller
         // Return a response (optional)
         return response()->json(['message' => 'Province updated successfully.', 'province' => $province], 200);
     }
+ 
 }

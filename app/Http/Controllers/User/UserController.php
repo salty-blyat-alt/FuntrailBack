@@ -80,6 +80,10 @@ class UserController extends Controller
             return $this->errorResponse('User failed to update');
         }
 
+        if ($request->profile_img) {
+            $imgPath = uploadDocument($request->profile_img, 'users/profiles');
+        } 
+
         // Validate the request data
         DB::table('users')->where('id', $user->id)->update([
             'username'          => $request->username ?? $user->username,
@@ -89,7 +93,7 @@ class UserController extends Controller
             'province_id'       => $request->province_id ?? $user->province_id,
             'balance'           => $request->balance ?? $user->balance,
             'phone_number'      => $request->phone_number ?? $user->phone_number,
-            'profile_img'       => $request->profile_img ?? $user->profile_img,
+            'profile_img'       => $imgPath ?? $user->profile_img,
         ]);
 
         return $this->successResponse($user);

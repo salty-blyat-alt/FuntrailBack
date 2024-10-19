@@ -6,7 +6,6 @@ use App\Models\Hotel;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Province;
-use App\Models\Room;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -185,17 +184,42 @@ class HotelController extends Controller
         }
 
         // Get optional fields from request, default to null if not provided
-        $facilitiesJson = $request->facilities ? json_encode($request->facilities) : null;
-        $policiesJson = $request->policies ? json_encode($request->policies) : null;
+        $facilitiesJson = $request->facilities ? json_encode($request->facilities) : $hotel->facilities;
+        $policiesJson = $request->policies ? json_encode($request->policies) : $hotel->policies;
 
+        // Handle thumbnail: keep old one if no new file provided
+        $thumbnailPath = $hotel->thumbnail;
+
+        if ($request->hasFile('thumbnail')) {
+            $thumbnail = $request->file('thumbnail');
+            $thumbnailPath = uploadDocument($thumbnail, 'hotels/thumbnails');
+        }
+
+        // Handle images: replace old images if new ones are provided
+        if ($request->hasFile('images')) {
+            // Delete old images if you need to, optionally implement a delete logic here
+
+            $imagesJson = []; // Start with an empty array
+            $newImages = $request->file('images');
+            foreach ($newImages as $image) {
+                $imagePath = uploadDocument($image, 'hotels/images');
+                $imagesJson[] = $imagePath; // Add new image paths
+            }
+            $imagesJson = json_encode($imagesJson); // Convert to JSON for saving
+        } else {
+            // If no new images are provided, keep the old ones
+            $imagesJson = $hotel->images;
+        }
+
+        // Update hotel details in the database
         DB::table('hotels')->where('id', $hotel->id)->update([
             'name'         => $request->name          ?? $hotel->name,
             'user_id'      => $hotel->user_id,
             'province_id'  => $request->province_id   ?? $hotel->province_id,
             'address'      => $request->address       ?? $hotel->address,
             'description'  => $request->description   ?? $hotel->description,
-            'thumbnail'    => $request->thumbnail     ?? $hotel->thumbnail,
-            'images'       => $request->images        ?? $hotel->images,
+            'thumbnail'    => $thumbnailPath,
+            'images'       => $imagesJson,  // Updated to override images
             'facilities'   => $facilitiesJson         ?? $hotel->facilities,
             'policies'     => $policiesJson           ?? $hotel->policies,
             'open_at'      => $request->open_at       ?? $hotel->open_at,
@@ -204,6 +228,7 @@ class HotelController extends Controller
 
         return $this->successResponse('Hotel updated successfully');
     }
+
 
     // work done
     public function destroy(Request $request)
@@ -242,6 +267,7 @@ class HotelController extends Controller
         $hotelBookings = DB::table('bookings as b')
             ->leftJoin('users as u', 'u.id', '=', 'b.user_id')
             ->leftJoin('hotels as h', 'h.id', '=', 'b.hotel_id')
+            ->leftJoin('provinces as p', 'h.province_id', '=', 'p.id')
             ->select(
                 'h.id as hotel_id',
                 'h.name as hotel_name',
@@ -258,6 +284,8 @@ class HotelController extends Controller
                 'h.updated_at',
                 'h.facilities',
                 'h.policies',
+                'p.name as province',
+                'p.img as province_img',
                 DB::raw('count(b.id) as popular_point')
             )
             ->groupBy(
@@ -274,13 +302,13 @@ class HotelController extends Controller
                 'h.created_at',
                 'h.updated_at',
                 'h.facilities',
-                'h.policies'
+                'h.policies',
+                'p.name',
+                'p.img',
             )
             ->orderByDesc('popular_point')
             ->get();
 
         return $this->successResponse($hotelBookings);
     }
-
-  
 }

@@ -36,7 +36,7 @@ class AuthController extends Controller
                 'username' => $validatedData['username'],
                 'email' => $validatedData['email'],
                 'user_type' => 'customer',
-                'province_id' => $validatedData['province_id']??null,
+                'province_id' => $validatedData['province_id'] ?? null,
                 'phone_number' => $validatedData['phone_number'],
                 'profile_img' => $imgPath ?? null,
                 'password' => Hash::make($validatedData['password'])
@@ -58,6 +58,7 @@ class AuthController extends Controller
 
     public function login(Request $request): JsonResponse
     {
+       
         try {
             $request->validate([
                 'email' => 'required|email|exists:users,email',
@@ -117,7 +118,7 @@ class AuthController extends Controller
                 'status' => __($status),
             ], 500);
         }
-    } 
+    }
 
     public function resetPassword(Request $request): JsonResponse
     {
