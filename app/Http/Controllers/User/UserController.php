@@ -142,7 +142,7 @@ class UserController extends Controller
             "province" => $province,
             "phone_number" => $user->phone_number,
             "profile_img" => $user->profile_img,
-            "establishment_id" => $establishment_id // Add the establishment ID
+            "establishment_id" => $establishment_id ?? null // Add the establishment ID
         ];
 
         return $this->successResponse($user);
