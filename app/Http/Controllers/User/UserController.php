@@ -82,7 +82,7 @@ class UserController extends Controller
 
         if ($request->profile_img) {
             $imgPath = uploadDocument($request->profile_img, 'users/profiles');
-        } 
+        }
 
         // Validate the request data
         DB::table('users')->where('id', $user->id)->update([
@@ -142,7 +142,7 @@ class UserController extends Controller
             "province" => $province,
             "phone_number" => $user->phone_number,
             "profile_img" => $user->profile_img,
-            "establishment_id" => $establishment_id ?? null // Add the establishment ID
+            "establishment_id" => $establishment_id ?? null
         ];
 
         return $this->successResponse($user);

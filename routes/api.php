@@ -47,7 +47,6 @@ Route::middleware('auth:sanctum')->prefix('hotel')->group(function () {
     Route::post('add-room',                 [RoomController::class, 'addRooms']);
     Route::post('upload-room/{roomId}',     [RoomController::class, 'updateRoom']);
     Route::post('delete-room',              [RoomController::class, 'deleteRoom']);
-
     Route::post('book',                     [BookController::class, 'book']); 
 });
 // work done
@@ -102,8 +101,7 @@ Route::prefix('popular')->group(function () {
     Route::get('hotels', [HotelController::class, 'popular']);
     Route::get('provinces', [ProvinceController::class, 'popular']);
 
-    // not done
-    // work on this
-    Route::get('restaurants', [RestaurantController::class, 'popular']);
+    // not done 
+    // Route::get('restaurants', [RestaurantController::class, 'popular']);
 });
  

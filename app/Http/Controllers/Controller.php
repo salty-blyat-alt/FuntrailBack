@@ -47,7 +47,7 @@ abstract class Controller
         return [
             'name'          => 'required|string',
             'user_id'       => 'required|int',
-            'province_id'   => 'required|int',
+            'province_id'   => 'int',
             'address'       => 'required|string',
             'description'   => 'string',
             'thumbnail'     => 'nullable|file|mimes:jpeg,png,jpg',

@@ -64,26 +64,33 @@ class HotelController extends Controller
     // work done
     public function store(Request $request)
     {
+        // Merge province_id as an integer before validation
+        $request->merge(['province_id' => (int) $request->province_id]);
+
         DB::beginTransaction();
         try {
-            $validatedData = Validator::make(array_merge(
+            // Prepare data for validation, including user info
+            $dataToValidate = array_merge(
                 $request->all(),
                 [
-                    'user_id'       => $request->user()->id,
-                    'province_id'   => $request->user()->province_id,
-                    'phone_number'  => $request->user()->phone_number
+                    'user_id'      => $request->user()->id,
+                    'province_id'  => $request->province_id, // Already set as an integer
+                    'phone_number' => $request->user()->phone_number
                 ]
-            ), $this->hotelRules());
+            );
 
-            if ($validatedData->fails()) {
-                return $this->errorResponse('Hotel failed to create', 500);
+            // Validate the data
+            $validatedData = Validator::make($dataToValidate, $this->hotelRules());
+
+            if ($validatedData->fails()) {  
+                return $this->errorResponse('Hotel creation failed due to validation errors.', 422, $validatedData->errors());
             }
 
-            // Check if user already owns a hotel before proceeding with creation
-            $user = User::findOrFail($request->user()->id);
-            $hotelExist = DB::table('hotels')->where('user_id', $user->id)->exists();
+            // Check if user already owns a hotel
+            $user = $request->user();
+            $hotelExists = DB::table('hotels')->where('user_id', $user->id)->exists();
 
-            if ($user->user_type === 'hotel' || $user->user_type === 'restaurant' || $hotelExist) {
+            if ($user->user_type === 'hotel' || $user->user_type === 'restaurant' || $hotelExists) {
                 return $this->errorResponse('User already owns a hotel or restaurant.', 400);
             }
 
@@ -91,48 +98,44 @@ class HotelController extends Controller
             $thumbnailPath = uploadDocument($request->file('thumbnail'), 'hotels/thumbnails');
 
             $imagesPaths = [];
-            if ($request->hasfile('images')) {
-                foreach ($request->file('images') as $index => $file) {
-                    $imagesPaths[$index] = uploadDocument($file, 'hotels/images');
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $file) {
+                    $imagesPaths[] = uploadDocument($file, 'hotels/images');
                 }
             }
 
-            // Validate and create hotel
+            // Prepare data for hotel creation
             $imagesJson = json_encode($imagesPaths);
-            $validatedData = $validatedData->validated();
-
-            // Get optional fields from request, default to null if not provided
             $facilitiesJson = $request->facilities ? json_encode($request->facilities) : null;
             $policiesJson = $request->policies ? json_encode($request->policies) : null;
 
+            // Create hotel record
             Hotel::create([
-                'name'         => $validatedData['name'],
-                'user_id'      => $request->user()->id,
-                'province_id'  => $request->user()->province_id,
-                'address'      => $validatedData['address'],
-                'description'  => $validatedData['description'] ?? null,
-                'phone_number' => $request->user()->phone_number,
+                'name'         => $validatedData->validated()['name'],
+                'user_id'      => $user->id,
+                'province_id'  => $request->province_id,
+                'address'      => $validatedData->validated()['address'],
+                'description'  => $validatedData->validated()['description'] ?? null,
+                'phone_number' => $user->phone_number,
                 'thumbnail'    => $thumbnailPath ?? null,
                 'images'       => $imagesJson ?? null,
-                'facilities'   => $facilitiesJson,  // New field
-                'policies'     => $policiesJson,    // New field
-                'open_at'      => $validatedData['open_at'],
-                'close_at'     => $validatedData['close_at'],
+                'facilities'   => $facilitiesJson,
+                'policies'     => $policiesJson,
+                'open_at'      => $validatedData->validated()['open_at'],
+                'close_at'     => $validatedData->validated()['close_at'],
             ]);
 
             // Update user type after hotel creation
-            DB::table('users')->where('id', $request->user()->id)->update([
-                'user_type' => 'hotel'
-            ]);
+            $user->update(['user_type' => 'hotel']);
 
             DB::commit();
             return $this->successResponse('Hotel created successfully');
         } catch (\Illuminate\Validation\ValidationException $e) {
-            DB::rollBack(); // Rollback the transaction on validation error
-            return $this->errorResponse(['errors' => $e->errors()], 422);
+            DB::rollBack(); // Rollback on validation error
+            return $this->errorResponse('Validation errors occurred.', 422, $e->errors());
         } catch (\Exception $e) {
-            DB::rollBack(); // Rollback the transaction on general error
-            return $this->errorResponse(['errors' => $e->getMessage()], 500);
+            DB::rollBack(); // Rollback on general error
+            return $this->errorResponse('An error occurred while creating the hotel: ' . $e->getMessage(), 500);
         }
     }
 
