@@ -21,6 +21,13 @@ class HotelController extends Controller
         $min_price = $request->query('min_price', 0);
         $max_price = $request->query('max_price', PHP_INT_MAX);
         $name = $request->query('name', null);
+        $sortBy = $request->query('sort_by', 'h.name'); // Default sort by hotel name
+        $sortDirection = $request->query('sort_direction', 'asc'); // Default sort direction
+
+        // Validate sort direction
+        if (!in_array(strtolower($sortDirection), ['asc', 'desc'])) {
+            $sortDirection = 'asc'; // Fallback to asc if invalid
+        }
 
         $hotels = DB::table('hotels as h')
             ->leftJoin('users as c', 'c.id', '=', 'h.user_id')
@@ -46,9 +53,13 @@ class HotelController extends Controller
             $hotels->where(DB::raw('LOWER(h.name)'), 'like', '%' . strtolower($name) . '%');
         }
 
+        // Apply sorting
+        $hotels->orderBy($sortBy, $sortDirection);
+
         $hotels = $hotels
             ->groupBy('h.id', 'p.name', 'h.name', 'c.username', 'h.province_id', 'h.address', 'h.description', 'h.thumbnail', 'h.images', 'h.open_at', 'h.close_at')
             ->paginate($perPage);
+
         foreach ($hotels as $hotel) {
             $hotel->images = json_decode($hotel->images, true); // Decode JSON to array
             $hotel->policies = json_decode($hotel->policies, true); // Decode JSON to array
@@ -82,7 +93,7 @@ class HotelController extends Controller
             // Validate the data
             $validatedData = Validator::make($dataToValidate, $this->hotelRules());
 
-            if ($validatedData->fails()) {  
+            if ($validatedData->fails()) {
                 return $this->errorResponse('Hotel creation failed due to validation errors.', 422, $validatedData->errors());
             }
 
