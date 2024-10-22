@@ -19,6 +19,7 @@ class HotelComment extends Model
         'star',
         'user_id',
         'hotel_id',
+        'parent_id',
     ];
 
     /**
@@ -35,5 +36,13 @@ class HotelComment extends Model
     public function hotel()
     {
         return $this->belongsTo(Hotel::class);
+    }
+    public function replies()
+    {
+        return $this->hasMany(HotelComment::class, 'parent_id');
+    }
+    public function parent()
+    {
+        return $this->belongsTo(HotelComment::class, 'parent_id');
     }
 }

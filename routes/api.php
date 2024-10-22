@@ -2,21 +2,21 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Book\BookController;
+use App\Http\Controllers\Comment\HotelCommentController;
 use App\Http\Controllers\Dashboard\StatController;
 use App\Http\Controllers\Hotel\HotelController;
 use App\Http\Controllers\Product\ProductController;
 use App\Http\Controllers\ProvinceController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Restaurant\RestaurantController;
-use App\Http\Controllers\Room\RoomController; 
-use App\Http\Controllers\User\UserController; 
+use App\Http\Controllers\Room\RoomController;
+use App\Http\Controllers\User\UserController;
 /* 
                         ================================
                         ||     Level of user types    ||
                         ================================
-                        ||- admin                     || 
-                        ||- restaurant  \   hotel     ||       
-                        ||- customer                  ||      
+                        ||- admin                     ||
+                        ||- restaurant  \   hotel     ||
                         ================================
  */
 
@@ -47,7 +47,7 @@ Route::middleware('auth:sanctum')->prefix('hotel')->group(function () {
     Route::post('add-room',                 [RoomController::class, 'addRooms']);
     Route::post('upload-room/{roomId}',     [RoomController::class, 'updateRoom']);
     Route::post('delete-room',              [RoomController::class, 'deleteRoom']);
-    Route::post('book',                     [BookController::class, 'book']); 
+    Route::post('book',                     [BookController::class, 'book']);
 });
 // work done
 Route::middleware('auth:sanctum')->prefix('province')->group(function () {
@@ -94,14 +94,18 @@ Route::middleware('auth:sanctum')->prefix('dashboard')->group(function () {
     Route::get('month',             [StatController::class, 'getTotalSalesThisMonth']);
     Route::get('pending',           [StatController::class, 'pendingOrders']);
     Route::get('history',           [StatController::class, 'ordersHistory']);
-    
 });
+
+Route::prefix('comment')->group(function () {
+    Route::get('list',                       [HotelCommentController::class, 'index']);
+    Route::post('create',                    [HotelCommentController::class, 'store'])->middleware('auth:sanctum');
+    Route::post('update',                    [HotelCommentController::class, 'update'])->middleware('auth:sanctum');
+    Route::get('show/{hotel_id}',            [HotelCommentController::class, 'show']);
+    Route::post('delete',                    [HotelCommentController::class, 'destroy'])->middleware('auth:sanctum');
+});
+
 Route::prefix('popular')->group(function () {
     // work done
     Route::get('hotels', [HotelController::class, 'popular']);
     Route::get('provinces', [ProvinceController::class, 'popular']);
-
-    // not done 
-    // Route::get('restaurants', [RestaurantController::class, 'popular']);
 });
- 
