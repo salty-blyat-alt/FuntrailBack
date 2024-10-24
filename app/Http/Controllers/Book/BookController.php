@@ -8,17 +8,16 @@ use App\Models\Commission;
 use App\Models\Hotel;
 use App\Models\Room;
 use Carbon\Carbon;
-use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class BookController extends Controller
 {
-
     public function book(Request $request)
     {
-        // dd($request->all());
         $validatedData = Validator::make($request->all(), $this->bookingRules());
 
         if ($validatedData->fails()) {
@@ -28,77 +27,185 @@ class BookController extends Controller
 
         $customer_id = $request->user()->id;
         $user_type = $request->user()->user_type;
-        $uuid = rand(1, 4000000000);
-        $request->hotel_id = (int) $request->hotel_id;
+        $hotel_id = (int) $request->hotel_id;
         $hotel = Hotel::where('user_id', $customer_id)->first();
         $date_start = Carbon::createFromFormat('d/m/Y', $request->date_start)->format('Y-m-d');
         $date_end = Carbon::createFromFormat('d/m/Y', $request->date_end)->format('Y-m-d');
-
 
         // Check room availability 
         if (!$this->isRoomAvailable($request->room_ids, $date_start, $date_end, $request->hotel_id)) {
             return $this->errorResponse('No rooms available');
         }
 
-        // Check if the user is the owner of the hotel 
-        $isHotelOwner = ($user_type === 'hotel' && $hotel->user_id === $customer_id && $hotel->id === $request->hotel_id);
-        // dd($isHotelOwner);
+        $isHotelOwner = ($user_type === 'hotel' && $hotel->user_id === $customer_id && $hotel->id === $hotel_id);
+
         if ($isHotelOwner) {
-            $roomIds = $request->room_ids;
-            $rooms = Room::whereIn('id', $roomIds)->get();
-            foreach ($rooms as $room) {
-                $room->status = 'busy';
-                $room->save();
-            }
-            $bookings = $this->saveRecords($request->room_ids, $request->hotel_id, $customer_id, $date_start, $date_end, $uuid, $isHotelOwner);
+            $bookings =  $this->ownerBook($request);
+            return $this->successResponse($bookings);
+        } else {
+            $bookings =  $this->customerBook($request);
             return $this->successResponse($bookings);
         }
+    }
 
-        // for regular customer
-        DB::beginTransaction();
-        try {
-            $total_cost = 0;
+    public function cancel() {}
 
-            $total_cost = $this->calculateTotalCost($request->room_ids);
+    public function ownerBook(object $request)
+    {
+        $roomIds = $request->room_ids;
+        $customer_id = $request->user()->id;
+        $date_start = Carbon::createFromFormat('d/m/Y', $request->date_start)->format('Y-m-d');
+        $hotel_id = (int) $request->hotel_id;
+        $hotel = Hotel::where('user_id', $customer_id)->first();
+        $user_type = $request->user()->user_type;
+        $date_end = Carbon::createFromFormat('d/m/Y', $request->date_end)->format('Y-m-d');
+        $uuid = rand(1, 4000000000);
+        $isHotelOwner = ($user_type === 'hotel' && $hotel->user_id === $customer_id && $hotel->id === $hotel_id);
 
-            $total_commission = $total_cost * 0.05;
-            $total_cost = ($total_cost * 0.05) + $total_cost;
-
-            // stripe only accept int
-            $session = $this->stripePay($total_cost, $request->user()->id, $request->hotel_id, $request->room_ids);
-
-
-            Commission::create([
-                'user_id' => $customer_id,
-                'payment_type' => 'Stripe',
-                'total_payment' => $total_cost,
-                'commission_rate' =>  5,
-                'total_commission' => $total_commission,
-            ]);
-
-            // Check user balance before saving records
-            if ($request->user()->balance < $total_cost) {
-                DB::rollBack();
-                return $this->errorResponse('Insufficient balance', 400);
-            }
-
-            $bookings = $this->saveRecords($request->room_ids, $request->hotel_id, $customer_id, $date_start, $date_end, $uuid, $isHotelOwner);
-
-            // Deduct balance after successful booking
-            $request->user()->balance -= $total_cost;
-            $request->user()->save();
-
-            DB::commit();
-
-            return $this->successResponse([
-                'result' => $bookings,
-                'session' => $session
-            ]);
-        } catch (Exception $e) {
-            DB::rollBack();
-            return $this->errorResponse($e->getMessage());
+        $rooms = Room::whereIn('id', $roomIds)->get();
+        foreach ($rooms as $room) {
+            $room->status = 'busy';
+            $room->save();
         }
-        return $this->successResponse($bookings);
+
+        $bookings = $this->saveRecords($request->room_ids, $request->hotel_id, $customer_id, $date_start, $date_end, $uuid, $isHotelOwner);
+        return $bookings;
+    }
+
+    public function customerBook(object $request)
+    {
+        $customer_id = $request->user()->id;
+        $date_start = Carbon::createFromFormat('d/m/Y', $request->date_start)->format('Y-m-d');
+        $hotel_id = (int) $request->hotel_id;
+        $hotel = Hotel::where('user_id', $customer_id)->first();
+        $user_type = $request->user()->user_type;
+        $date_end = Carbon::createFromFormat('d/m/Y', $request->date_end)->format('Y-m-d');
+        $uuid = rand(1, 4000000000);
+        $isHotelOwner = ($user_type === 'hotel' && $hotel->user_id === $customer_id && $hotel->id === $hotel_id);
+
+        // Calculate total cost and commission
+        $pre_commission = $this->calculateTotalCost($request->room_ids);
+
+        $total_cost = ($pre_commission * 0.05) + $pre_commission;
+
+        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET'));
+
+        // Prepare line items for Stripe
+        $lineItems = [];
+        foreach ($request->room_ids as $room_id) {
+            $room = Room::find($room_id);
+            $lineItems[] = [
+                'price_data' => [
+                    'currency' => 'usd',
+                    'product_data' => [
+                        'name' => "Room: {$room->room_type}", // Use a meaningful name
+                        'description' => "Booking for room type: {$room->room_type}", // Option
+                    ],
+                    'unit_amount' => $total_cost * 100, // Convert to cents
+                ],
+                'quantity' => 1, // Assuming one of each room
+            ];
+        }
+
+        // Create Stripe Checkout session
+        $session = \Stripe\Checkout\Session::create([
+            'line_items' => $lineItems,
+            'mode' => 'payment',
+            'success_url' => env('FRONTEND_URL') . '/hotel-detail/' . $request->hotel_id . '?session_id={CHECKOUT_SESSION_ID}', // Correctly set success URL
+            'cancel_url' => route('checkout.cancel', [], true),
+            'metadata' => [
+                'hotel_id' => $request->hotel_id,
+                'user_id' => $customer_id,
+                'date_start' => $date_start,
+                'date_end' => $date_end,
+                'uuid' => $uuid, 
+                'room_ids' => json_encode($request->room_ids),
+                'pre_commission' => $pre_commission,
+                'total_cost' => $total_cost,
+            ],
+        ]);
+
+
+        // Save booking records
+        $this->saveRecords($request->room_ids, $request->hotel_id, $customer_id, $date_start, $date_end, $uuid, $isHotelOwner);
+
+        // Return both the session and bookings
+        return $session->url;
+    }
+
+    public function success(string $session_id)
+    {
+        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET'));
+        $sessionId = $session_id; // Assign the parameter to a variable
+    
+        // Start a database transaction
+        DB::beginTransaction();
+    
+        try {
+            $session = \Stripe\Checkout\Session::retrieve($sessionId); 
+    
+            if (!$session) {
+                throw new NotFoundHttpException('Session not found');
+            }
+    
+            // Retrieve the ID to look for in the database
+            $id = (int) $session->metadata->uuid; // Assuming this is the ID to look for
+    
+            // Retrieve the bookings using the ID
+            $orders = Booking::where('id', $id)->get(); 
+            // Debugging output
+            // dd($session);
+    
+            // Check if any orders were found
+            if ($orders->isEmpty()) {
+                Log::error('Order not found for ID: ' . $id);
+                throw new NotFoundHttpException('Order not found for ID: ' . $id);
+            }
+    
+            // Loop through each order and update the status if necessary
+            foreach ($orders as $order) {
+                if ($order->status === 'pending') {
+                    $order->status = 'completed';
+                    $order->save(); // Save the updated order status
+                }
+            }
+    
+            // Decode room IDs from metadata
+            $roomIds = json_decode($session->metadata->room_ids);
+    
+            // Loop through each room ID and update their status
+            foreach ($roomIds as $room_id) {
+                $room = Room::find($room_id);
+    
+                if ($room) {
+                    $room->status = 'busy';
+                    $room->save(); // Save the room status change
+                } else {
+                    Log::warning('Room not found for ID: ' . $room_id);
+                }
+            }
+    
+            // Create commission record
+            Commission::create([
+                'user_id' => $session->metadata->user_id,
+                'payment_type' => 'Stripe',
+                'total_payment' => $session->metadata->pre_commission,
+                'commission_rate' => 5,
+                'total_commission' => $session->metadata->total_cost -  $session->metadata->pre_commission,
+            ]);
+    
+            // Commit the transaction
+            DB::commit();
+    
+            // Redirect to Next.js app with session ID
+            return $this->successResponse("Rooms booked successfully");
+        } catch (\Exception $e) {
+            // Roll back the transaction if any error occurs
+            DB::rollBack();
+    
+            Log::error('Error in the success method: ' . $e->getMessage());
+            throw new NotFoundHttpException('An error occurred while processing the payment.');
+        }
     }
 
     public function isRoomAvailable($room_ids, $date_start, $date_end, $hotel_id)
@@ -127,7 +234,7 @@ class BookController extends Controller
         return true;
     }
 
-    // work done (chain with "book" func)
+
     public function saveRecords($room_ids, $hotel_id, $customer_id, $date_start, $date_end, $uuid, $isByOwner = false)
     {
         $bookings = []; // Initialize bookings array
@@ -170,49 +277,5 @@ class BookController extends Controller
         }
 
         return $total_cost;
-    }
-
-    public function stripePay($amount, $user_id, $hotel_id, $room_ids)
-    {
-        try {
-            $total_cost_in_cents = intval($amount * 100);
-
-            // Stripe
-            \Stripe\Stripe::setApiKey(env('STRIPE_SECRET'));
-
-            $session = \Stripe\Checkout\Session::create([
-                'payment_method_types' => ['card'],
-                'line_items' => [[
-                    'price_data' => [
-                        'currency' => 'usd',
-                        'unit_amount' => $total_cost_in_cents,
-                        'product_data' => [
-                            'name' => 'Hotel Booking',
-                            'description' => 'Booking for Hotel ID: ' . $hotel_id,
-                        ],
-                    ],
-                    'quantity' => 1,
-                ]],
-                'success_url' => env('FRONTEND_URL') . '?session_id={CHECKOUT_SESSION_ID}',
-                'mode' => 'payment',
-                'metadata' => [
-                    'user_id' => $user_id,
-                    'hotel_id' => $hotel_id,
-                    'room_ids' => json_encode($room_ids),
-                ],
-            ]);
-
-            return [
-                'status' => 'success',
-                'message' => 'Payment session created successfully',
-                'session_id' => $session->id,
-                'payment_url' => $session->url,
-            ];
-        } catch (\Exception $e) {
-            return [
-                'status' => 'error',
-                'message' => 'Error creating payment session: ' . $e->getMessage(),
-            ];
-        }
     }
 }

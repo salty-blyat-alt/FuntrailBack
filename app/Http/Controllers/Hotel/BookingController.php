@@ -20,10 +20,12 @@ class BookingController extends Controller
         if (!$user) {
             return $this->errorResponse('Unauthorized', 401);
         }
+
         // Use joins to retrieve related room and hotel data
         $bookings = Booking::leftJoin('rooms', 'bookings.room_id', '=', 'rooms.id')
             ->leftJoin('hotels', 'bookings.hotel_id', '=', 'hotels.id')
             ->where('bookings.user_id', $user->id)
+            ->where('bookings.status', 'completed')
             ->select([
                 'bookings.id',
                 'bookings.room_id',
@@ -43,10 +45,16 @@ class BookingController extends Controller
             ])
             ->get();
 
+        // Current date for comparison
+        $now = Carbon::now();
+
+        // Separate bookings into active and history
+        $activeOrders = [];
+        $historyOrders = [];
 
         // Format the result and format the dates to 'dd/mm/yyyy'
-        $formattedBookings = $bookings->map(function ($booking) {
-            return [
+        foreach ($bookings as $booking) {
+            $formattedBooking = [
                 'id' => $booking->id,
                 'room_id' => $booking->room_id,
                 'hotel_id' => $booking->hotel_id,
@@ -63,11 +71,24 @@ class BookingController extends Controller
                 'hotel_name' => $booking->hotel_name,
                 'room_img' => $booking->room_img
             ];
-        });
 
-        // Return the formatted response
-        return $this->successResponse($formattedBookings);
+            // Compare date_end with current date (now)
+            if (Carbon::parse($booking->date_end)->lt($now)) {
+                // If the booking has passed, it's a history booking
+                $historyOrders[] = $formattedBooking;
+            } else {
+                // If it's still active
+                $activeOrders[] = $formattedBooking;
+            }
+        }
+
+        // Return the formatted response with active orders and history orders
+        return $this->successResponse([
+            'active_orders' => $activeOrders,
+            'history_orders' => $historyOrders,
+        ]);
     }
+
     // Display a listing of bookings
     public function index()
     {

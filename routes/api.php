@@ -6,10 +6,8 @@ use App\Http\Controllers\Comment\HotelCommentController;
 use App\Http\Controllers\Dashboard\StatController;
 use App\Http\Controllers\Hotel\BookingController;
 use App\Http\Controllers\Hotel\HotelController;
-use App\Http\Controllers\Product\ProductController;
 use App\Http\Controllers\ProvinceController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Restaurant\RestaurantController;
 use App\Http\Controllers\Room\RoomController;
 use App\Http\Controllers\User\UserController;
 /* 
@@ -28,9 +26,10 @@ Route::prefix('auth')->group(function () {
     Route::post('login',            [AuthController::class, 'login']);
     Route::post('forgot-password',  [AuthController::class, 'forgotPassword'])->name('password.email');
     Route::post('reset-password',   [AuthController::class, 'resetPassword'])->name('password.reset');
-
+    
     /* protected routes */
     Route::middleware('auth:sanctum')->group(function () {
+        Route::post('change-password',  [AuthController::class, 'changePassword']);
         Route::get('profile', [UserController::class, 'profile']);
         Route::post('logout', [AuthController::class, 'logout']);
     });
@@ -50,6 +49,10 @@ Route::middleware('auth:sanctum')->prefix('hotel')->group(function () {
     Route::post('delete-room',              [RoomController::class, 'deleteRoom']);
     Route::post('book',                     [BookController::class, 'book']);
 });
+
+Route::get('success/{session_id}', [BookController::class, 'success'])->name('checkout.success');
+Route::get('cancel', [BookController::class, 'cancel'])->name('checkout.cancel');
+
 // work done
 Route::middleware('auth:sanctum')->prefix('province')->group(function () {
     Route::get('list',                      [ProvinceController::class, 'index'])->withoutMiddleware('auth:sanctum');

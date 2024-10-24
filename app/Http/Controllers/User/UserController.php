@@ -142,7 +142,8 @@ class UserController extends Controller
             "province" => $province,
             "phone_number" => $user->phone_number,
             "profile_img" => $user->profile_img,
-            "establishment_id" => $establishment_id ?? null
+            "establishment_id" => $establishment_id ?? null,
+            "created_at" => $user->created_at ? \Carbon\Carbon::parse($user->created_at)->format('d/m/Y') : null,
         ];
 
         return $this->successResponse($user);

@@ -127,19 +127,20 @@ class RoomController extends Controller
                 ->where('hotel_id', $hotel->id)
                 ->where('id', $roomId)
                 ->first(); // Fetch a single room 
+
             // If the room does not exist, return an error
             if (!$existingRoom) {
                 return $this->errorResponse('Room not found in this hotel.', 404);
             }
 
-            // Delete the existing room
+            // Soft delete the existing room by updating the `deleted_at` column
             DB::table('rooms')
                 ->where('id', $existingRoom->id)
-                ->delete();
+                ->update(['deleted_at' => now()]);
 
             DB::commit(); // Commit the transaction
 
-            return $this->successResponse('Room deleted successfully');
+            return $this->successResponse('Room soft-deleted successfully');
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack(); // Rollback on validation error
             return $this->errorResponse(['errors' => $e->errors()], 422);
@@ -148,6 +149,7 @@ class RoomController extends Controller
             return $this->errorResponse(['errors' => $e->getMessage()], 500);
         }
     }
+
 
     public function updateRoom(Request $request, $roomId)
     {

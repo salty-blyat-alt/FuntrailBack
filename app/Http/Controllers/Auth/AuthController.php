@@ -13,52 +13,72 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
     public function register(Request $request)
     {
+        // Validate the request with custom rules
         $validator = Validator::make($request->all(), $this->registerRules());
 
         if ($validator->fails()) {
             info($validator->messages());
-            return $this->errorResponse('User failed to register', 422);
+            return $this->errorResponse('Validation failed', 422);
         }
 
         try {
+            // Extract validated data
             $validatedData = $validator->validated();
 
+            // Check if the username or email already exists in the system
+            $existingUser = User::where('username', $validatedData['username'])
+                ->orWhere('email', $validatedData['email'])
+                ->first();
+
+            if ($existingUser) {
+                return $this->errorResponse('User with this username or email already exists.', 409);
+            }
+
+            // Handle profile image upload if it exists
             if ($request->hasFile('profile_img')) {
                 $imgPath = uploadDocument($request->file('profile_img'), 'users/profiles');
             }
 
+            // Create a new user in the system
             $user = User::create([
-                'username' => $validatedData['username'],
-                'email' => $validatedData['email'],
-                'user_type' => 'customer',
-                'province_id' => $validatedData['province_id'] ?? null,
-                'phone_number' => $validatedData['phone_number'],
-                'profile_img' => $imgPath ?? null,
-                'password' => Hash::make($validatedData['password'])
+                'username'      => $validatedData['username'],
+                'email'         => $validatedData['email'],
+                'user_type'     => 'customer',
+                'province_id'   => $validatedData['province_id'] ?? null,
+                'phone_number'  => $validatedData['phone_number'],
+                'profile_img'   => $imgPath ?? null,
+                'password'      => Hash::make($validatedData['password'])
             ]);
 
+            // Generate an authentication token for the new user
             $token = $user->createToken($user->username)->plainTextToken;
 
             return $this->successResponse([
                 'message' => 'User created successfully',
-                'token' => $token,
+                'token'   => $token,
             ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Handle database-specific errors, like constraint violations
+            info('Database Error creating user: ' . $e->getMessage());
+            return $this->errorResponse('User creation failed due to a database error.', 500);
         } catch (\Exception $e) {
-            // for production
+            // Handle general errors
             info('Error creating user: ' . $e->getMessage());
             return $this->errorResponse('User failed to create', 500);
         }
     }
 
 
+
     public function login(Request $request): JsonResponse
     {
-       
         try {
             $request->validate([
                 'email' => 'required|email|exists:users,email',
@@ -158,5 +178,44 @@ class AuthController extends Controller
                 'status' => __($status),
             ], 500);
         }
+    }
+
+    public function changePassword(Request $request)
+    {
+    
+        // Validate the input
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+    
+        // Check if the current password is correct
+        if (!Hash::check($request->current_password, Auth::user()->password)) {
+            return $this->errorResponse('The provided password does not match your current password.');
+        }
+    
+        // Update the password
+        $user = $request->user();
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+    
+        // Delete all tokens except the current one
+        if ($request->preserve_current_token) {
+            // Get current token
+            $currentToken = $request->bearerToken();
+            
+            // Delete all other tokens
+            $user->tokens()
+                ->where('token', '!=', hash('sha256', $currentToken))
+                ->delete();
+        } else {
+            // Delete all tokens including current one
+            $user->tokens()->delete();
+        }
+    
+        return $this->successResponse([
+            'message' => 'Password changed successfully!',
+            'should_logout' => !$request->preserve_current_token
+        ]);
     }
 }
