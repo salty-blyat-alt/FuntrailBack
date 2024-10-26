@@ -36,6 +36,7 @@ function uploadDocument($documentUpload, $documentFolderName)
   $fileUrl = Storage::url($filePath);
   return $fileUrl;
 }
+
 function formateDateTime($dateTime, $format)
 {
   return \Carbon\Carbon::parse($dateTime)->format($format);

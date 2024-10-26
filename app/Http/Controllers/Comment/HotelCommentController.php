@@ -25,7 +25,7 @@ class HotelCommentController extends Controller
 
         // Format the created_at timestamp
         $comments->transform(function ($comment) {
-            $comment->created_at = $comment->created_at->diffForHumans(); // Format the timestamp
+            $comment->created_at = $comment->created_at->diffForHumans();
             return $comment;
         });
 
@@ -130,28 +130,41 @@ class HotelCommentController extends Controller
      * @param int $id
      * @return JsonResponse
      */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(Request $request): JsonResponse
     {
+        $id = $request->input('id');
+        $context = $request->input('context');
         $comment = HotelComment::find($id);
+        $user = Auth::user();
+
 
         if (!$comment) {
             return $this->errorResponse("Comment not found", 404);
         }
 
+        // Check if the authenticated user is the hotel owner or the comment author
+
+        $isCommenter = $user->id === $comment->user_id;
+
+        // If neither the hotel owner nor the commenter, return unauthorized
+        if (!$isCommenter) {
+            return $this->errorResponse("Unauthorized", 403);
+        }
+
+
         $validator = Validator::make($request->all(), [
-            'context' => 'sometimes|required|string|max:255',
-            'star' => 'sometimes|required|integer|min:1|max:5',
-            'user_id' => 'sometimes|required|exists:users,id',
-            'hotel_id' => 'sometimes|required|exists:hotels,id',
-            'parent_id' => 'nullable|exists:hotel_comments,id',
+            'context' => 'required|string|max:255',
         ]);
 
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
         }
 
-        $comment->update($request->all());
-        return $this->successResponse($comment, "Comment updated successfully");
+        // Update only the 'context' field
+        $comment->context = $context;
+        $comment->save(); // Save the changes
+
+        return $this->successResponse("Comment updated successfully");
     }
 
     /**
@@ -164,10 +177,10 @@ class HotelCommentController extends Controller
     {
         // Fetch the authenticated user
         $user = Auth::user();
-        
+
         // Retrieve the comment ID from the request's form data
         $id = $request->input('id');
-         
+
         // Find the comment
         $comment = HotelComment::find($id);
 
