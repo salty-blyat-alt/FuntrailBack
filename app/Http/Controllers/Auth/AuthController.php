@@ -127,16 +127,10 @@ class AuthController extends Controller
 
         // Check if the reset link was sent
         if ($status === Password::RESET_LINK_SENT) {
-            return $this->successResponse([
-                'message' => 'Password reset link sent to your email.',
-                'status' => __($status),
-            ], 200);
+            return $this->successResponse(__($status));
         } else {
             // If the link could not be sent
-            return $this->errorResponse([
-                'message' => 'Failed to send password reset link.',
-                'status' => __($status),
-            ], 500);
+            return $this->errorResponse( __($status) );
         }
     }
 
@@ -182,28 +176,28 @@ class AuthController extends Controller
 
     public function changePassword(Request $request)
     {
-    
+
         // Validate the input
         $request->validate([
             'current_password' => 'required',
             'new_password' => 'required|string|min:8|confirmed',
         ]);
-    
+
         // Check if the current password is correct
         if (!Hash::check($request->current_password, Auth::user()->password)) {
             return $this->errorResponse('The provided password does not match your current password.');
         }
-    
+
         // Update the password
         $user = $request->user();
         $user->password = Hash::make($request->new_password);
         $user->save();
-    
+
         // Delete all tokens except the current one
         if ($request->preserve_current_token) {
             // Get current token
             $currentToken = $request->bearerToken();
-            
+
             // Delete all other tokens
             $user->tokens()
                 ->where('token', '!=', hash('sha256', $currentToken))
@@ -212,7 +206,7 @@ class AuthController extends Controller
             // Delete all tokens including current one
             $user->tokens()->delete();
         }
-    
+
         return $this->successResponse([
             'message' => 'Password changed successfully!',
             'should_logout' => !$request->preserve_current_token

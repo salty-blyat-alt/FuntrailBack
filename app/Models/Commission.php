@@ -20,6 +20,7 @@ class Commission extends Model
         'total_payment',
         'commission_rate',
         'total_commission',
+        'booking_id',
     ];
 
     /**

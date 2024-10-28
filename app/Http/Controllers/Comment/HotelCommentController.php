@@ -18,19 +18,29 @@ class HotelCommentController extends Controller
      *
      * @return JsonResponse
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        // Load comments along with their replies
-        $comments = HotelComment::with('replies')->where('parent_id', null)->get();
+        // Define the number of comments to load per page
+        $perPage = 5; // Adjust this value as needed
 
-        // Format the created_at timestamp
-        $comments->transform(function ($comment) {
+        // Load comments with replies, order by most recent, and apply pagination
+        $comments = HotelComment::with('replies')
+            ->where('parent_id', null)
+            ->orderBy('created_at', 'desc') // Order by most recent
+            ->paginate($perPage);
+
+        // Format the created_at timestamp for each comment
+        $comments->getCollection()->transform(function ($comment) {
             $comment->created_at = $comment->created_at->diffForHumans();
             return $comment;
         });
 
+        // Apply any pagination cleaning or customization if needed
+        $comments = cleanPagination($comments);
+
         return $this->successResponse($comments);
     }
+
 
     /**
      * Store a newly created hotel comment in storage.
@@ -71,15 +81,18 @@ class HotelCommentController extends Controller
      * @param int $hotel_id
      * @return JsonResponse
      */
-    public function show(int $hotel_id): JsonResponse
+    public function show(Request $request,int $hotel_id): JsonResponse
     {
+        $perPage = $request->query('per_page', 5);
         // Retrieve comments for the specified hotel, including their replies
         $comments = HotelComment::where('hotel_id', $hotel_id)
+            ->orderBy('created_at', 'desc') // Order by most recent
             ->where('parent_id', null) // To only get top-level comments
             ->with(['user:id,username,profile_img', 'replies' => function ($query) {
                 $query->with('user:id,username,profile_img'); // Load replies with their respective users
             }])
-            ->get();
+            ->paginate($perPage);
+
 
         if ($comments->isEmpty()) {
             return $this->errorResponse("No comments found for this hotel", 404);
@@ -117,6 +130,8 @@ class HotelCommentController extends Controller
 
             return $comment; // Return the modified comment
         });
+
+        $comments = cleanPagination($comments);
 
         return $this->successResponse($comments, "Comments retrieved successfully");
     }

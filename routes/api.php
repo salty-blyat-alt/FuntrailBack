@@ -45,7 +45,7 @@ Route::middleware('auth:sanctum')->prefix('hotel')->group(function () {
     Route::get('show/{id}',                 [HotelController::class, 'show'])->withoutMiddleware('auth:sanctum');
     Route::get('rooms/{id}',                [RoomController::class, 'rooms'])->withoutMiddleware('auth:sanctum');
     Route::post('add-room',                 [RoomController::class, 'addRooms']);
-    Route::post('upload-room/{roomId}',     [RoomController::class, 'updateRoom']);
+    Route::post('update-room/{roomId}',     [RoomController::class, 'updateRoom']);
     Route::post('delete-room',              [RoomController::class, 'deleteRoom']);
     Route::post('book',                     [BookController::class, 'book']);
 });

@@ -18,7 +18,7 @@ class Booking extends Model
     protected $fillable = [
         'id',
         'room_id',
-        'u_id', // Add u_id here
+        'u_id', 
         'user_id',
         'hotel_id',
         'date_start',
@@ -53,5 +53,5 @@ class Booking extends Model
     public function hotel()
     {
         return $this->belongsTo(Hotel::class);
-    }
+    } 
 }

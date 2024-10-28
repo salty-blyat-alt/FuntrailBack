@@ -10,8 +10,9 @@ class ResetPasswordNotification extends BaseResetPassword
     public function toMail($notifiable)
     {
         // PROD TURN THIS TO frontend url
-        $url = url('/api/password/reset?token=' . $this->token . '&email=' . urlencode($notifiable->email));
-
+        $front_end_url = env('FRONTEND_URL', 'http://localhost:3000');
+        $url = $front_end_url . '/auth/reset-password?token=' . $this->token . '&email=' . urlencode($notifiable->email);
+        
         return (new MailMessage)
             ->subject('Reset Password Notification')
             ->line('You are receiving this email because we received a password reset request for your account.')

@@ -41,7 +41,7 @@ class BookController extends Controller
 
         if ($isHotelOwner) {
             $bookings =  $this->ownerBook($request);
-            return $this->successResponse($bookings);
+            return $this->successResponse("Rooms booked successfully");
         } else {
             $bookings =  $this->customerBook($request);
             return $this->successResponse($bookings);
@@ -69,6 +69,7 @@ class BookController extends Controller
         }
 
         $bookings = $this->saveRecords($request->room_ids, $request->hotel_id, $customer_id, $date_start, $date_end, $uuid, $isHotelOwner);
+  
         return $bookings;
     }
 
@@ -191,6 +192,7 @@ class BookController extends Controller
                 'payment_type' => 'Stripe',
                 'total_payment' => $session->metadata->pre_commission,
                 'commission_rate' => 5,
+                'booking_id' => $session->metadata->uuid, 
                 'total_commission' => $session->metadata->total_cost -  $session->metadata->pre_commission,
             ]);
     

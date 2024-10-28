@@ -72,6 +72,7 @@ abstract class Controller
             'room_ids.*'   => 'required|int',
             'date_start'   => 'required|date_format:d/m/Y',
             'date_end'     => 'required|date_format:d/m/Y|after_or_equal:date_start',
+            'date_end'     => 'required|date_format:d/m/Y|after_or_equal:date_start',
 
         ];
     }
@@ -96,6 +97,7 @@ abstract class Controller
             'total_payment'      => 'required|numeric|min:0',
             'commission_rate'    => 'required|integer|min:0|max:100',
             'total_commision'    => 'required|numeric|min:0',
+            'booking_id'         => 'numeric|min:0',
         ];
     }
 
