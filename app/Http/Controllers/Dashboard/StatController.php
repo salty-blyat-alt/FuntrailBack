@@ -122,16 +122,16 @@ class StatController extends Controller
         return $this->successResponse($pendingOrdersWithDetails);
     }
 
-    // TODO 
+
+    // do not touch
     public function ordersHistory(Request $request)
     {
         $userId = Auth::id();
         $hotel = Hotel::where('user_id', $userId)->firstOrFail();
         $hotelId = $hotel->id;
 
-        // Get the perPage value from the request, default to 10 if not provided
-        $perPage = $request->input('perPage', 10);
-        $page = $request->input('page', 1);
+        $perPage = (int) $request->input('perPage', 10);
+        $page = (int) $request->input('page', 1);
 
         $orderHistory = DB::table('bookings as b')
             ->leftJoin('commissions as c', 'c.booking_id', '=', 'b.id')
@@ -146,44 +146,51 @@ class StatController extends Controller
                 'b.date_start as checkin',
                 'b.date_end as checkout',
                 'c.total_payment as total',
-                'b.created_at as ordered_at',
+                'b.created_at as ordered_at'
             )
             ->where('b.hotel_id', $hotelId)
             ->orderBy('b.created_at', 'desc')
-            ->get()
-            ->groupBy('receipt_id')
-            ->map(function ($group) {
-                $first = $group->first();
-                $first->ordered_at = Carbon::parse($first->ordered_at);
-                $first->ordered_at = $first->ordered_at->diffForHumans(Carbon::now());
-                return [
-                    'receipt_id' => $first->receipt_id,
-                    'hotel_name' => $first->hotel_name,
-                    'username' => $first->username,
-                    'checkin' => $first->checkin,
-                    'checkout' => $first->checkout,
-                    'total' => $first->total,
-                    'ordered_at' => $first->ordered_at,
-                    'rooms' => $group->pluck('room_type')->toArray()
-                ];
-            })
-            ->values();
+            ->get(); // Use get() instead of paginate for custom grouping
 
-        $total = $orderHistory->count();
-        $orderHistory = $orderHistory->forPage($page, $perPage);
+        // Group rooms by receipt_id
+        $groupedOrders = $orderHistory->groupBy('receipt_id')->map(function ($orders) {
+            $firstOrder = $orders->first();
+            $firstOrder->rooms = $orders->pluck('room_type')->unique()->toArray();
+            $firstOrder->ordered_at = Carbon::parse($firstOrder->ordered_at)->diffForHumans(Carbon::now());
+            unset($firstOrder->room_type);
+            return $firstOrder;
+        });
 
-        $paginatedOrderHistory = new LengthAwarePaginator(
-            $orderHistory,
-            $total,
+        // If needed, convert to a paginated collection after processing
+        $orderHistory = $groupedOrders->values();
+
+        // Get the current page and per-page value (you can set default values)
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+
+        // Slice the collection to get items for the current page
+        $slicedOrders = $orderHistory->slice(($currentPage - 1) * $perPage, $perPage)->values();
+
+        // Create a manual paginator
+        $paginator = new LengthAwarePaginator(
+            $slicedOrders,
+            $orderHistory->count(), // Total number of items
             $perPage,
-            $page,
-            ['path' => $request->url(), 'query' => $request->query()]
+            $currentPage,
+            ['path' => LengthAwarePaginator::resolveCurrentPath()] // Preserve the URL path
         );
 
-        $orderHistory = cleanPagination($paginatedOrderHistory);
 
-
-        // Prepare the response
-        return $this->successResponse($orderHistory);
+        // Return the response
+        return $this->successResponse([
+            'items' => $paginator->items(),
+            'paginate' => [
+                'total' => $paginator->total(),
+                'per_page' => $paginator->perPage(),
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'next_page_url' => $paginator->nextPageUrl(),
+                'prev_page_url' => $paginator->previousPageUrl(),
+            ],
+        ]);
     }
 }
