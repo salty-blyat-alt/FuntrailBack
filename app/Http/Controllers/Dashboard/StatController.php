@@ -7,7 +7,9 @@ use App\Models\Booking;
 use App\Models\Hotel;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class StatController extends Controller
 {
@@ -120,47 +122,68 @@ class StatController extends Controller
         return $this->successResponse($pendingOrdersWithDetails);
     }
 
+    // TODO 
     public function ordersHistory(Request $request)
     {
         $userId = Auth::id();
         $hotel = Hotel::where('user_id', $userId)->firstOrFail();
         $hotelId = $hotel->id;
-    
+
         // Get the perPage value from the request, default to 10 if not provided
         $perPage = $request->input('perPage', 10);
-    
-        // Paginate the results directly
-        $orderHistory = Booking::with(['room', 'user'])
-            ->where('hotel_id', $hotelId)
-            ->paginate($perPage);
-    
-        // Transform the results to include room type and username
-        $ordersHistory = $orderHistory->getCollection()->map(function ($order) {
-            return [
-                'b_id' => $order->id,
-                'id' => $order->u_id ?? null,
-                'room_id' => $order->room_id,
-                'hotel_id' => $order->hotel_id,
-                'date_start' => Carbon::parse($order->date_start)->format('d/m/Y'),
-                'date_end' => Carbon::parse($order->date_end)->format('d/m/Y'),
-                'total' => $order->total,
-                'ordered_at' => Carbon::parse($order->created_at)->format('d/m/Y'),
-                'room_type' => $order->room->room_type ?? null,
-                'username' => $order->user->username ?? null, 
-            ];
-        });
-    
+        $page = $request->input('page', 1);
+
+        $orderHistory = DB::table('bookings as b')
+            ->leftJoin('commissions as c', 'c.booking_id', '=', 'b.id')
+            ->leftJoin('users as u', 'u.id', '=', 'b.user_id')
+            ->leftJoin('rooms as r', 'r.id', '=', 'b.room_id')
+            ->leftJoin('hotels as h', 'h.id', '=', 'b.hotel_id')
+            ->select(
+                'b.id as receipt_id',
+                'h.name as hotel_name',
+                'u.username as username',
+                'r.room_type as room_type',
+                'b.date_start as checkin',
+                'b.date_end as checkout',
+                'c.total_payment as total',
+                'b.created_at as ordered_at',
+            )
+            ->where('b.hotel_id', $hotelId)
+            ->orderBy('b.created_at', 'desc')
+            ->get()
+            ->groupBy('receipt_id')
+            ->map(function ($group) {
+                $first = $group->first();
+                $first->ordered_at = Carbon::parse($first->ordered_at);
+                $first->ordered_at = $first->ordered_at->diffForHumans(Carbon::now());
+                return [
+                    'receipt_id' => $first->receipt_id,
+                    'hotel_name' => $first->hotel_name,
+                    'username' => $first->username,
+                    'checkin' => $first->checkin,
+                    'checkout' => $first->checkout,
+                    'total' => $first->total,
+                    'ordered_at' => $first->ordered_at,
+                    'rooms' => $group->pluck('room_type')->toArray()
+                ];
+            })
+            ->values();
+
+        $total = $orderHistory->count();
+        $orderHistory = $orderHistory->forPage($page, $perPage);
+
+        $paginatedOrderHistory = new LengthAwarePaginator(
+            $orderHistory,
+            $total,
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        $orderHistory = cleanPagination($paginatedOrderHistory);
+
+
         // Prepare the response
-        return $this->successResponse([
-            'items' => $ordersHistory,
-            'paginate' => [
-                'total' => $orderHistory->total(),
-                'per_page' => $orderHistory->perPage(),
-                'current_page' => $orderHistory->currentPage(),
-                'next_page_url' => $orderHistory->nextPageUrl(),
-                'last_page' => $orderHistory->lastPage(),
-            ]
-        ]);
+        return $this->successResponse($orderHistory);
     }
-    
 }

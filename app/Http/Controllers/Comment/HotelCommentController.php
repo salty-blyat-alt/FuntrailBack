@@ -13,41 +13,6 @@ use Illuminate\Support\Facades\Validator;
 
 class HotelCommentController extends Controller
 {
-    /**
-     * Display a listing of the hotel comments.
-     *
-     * @return JsonResponse
-     */
-    public function index(Request $request): JsonResponse
-    {
-        // Define the number of comments to load per page
-        $perPage = 5; // Adjust this value as needed
-
-        // Load comments with replies, order by most recent, and apply pagination
-        $comments = HotelComment::with('replies')
-            ->where('parent_id', null)
-            ->orderBy('created_at', 'desc') // Order by most recent
-            ->paginate($perPage);
-
-        // Format the created_at timestamp for each comment
-        $comments->getCollection()->transform(function ($comment) {
-            $comment->created_at = $comment->created_at->diffForHumans();
-            return $comment;
-        });
-
-        // Apply any pagination cleaning or customization if needed
-        $comments = cleanPagination($comments);
-
-        return $this->successResponse($comments);
-    }
-
-
-    /**
-     * Store a newly created hotel comment in storage.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
     public function store(Request $request): JsonResponse
     {
 
@@ -75,15 +40,12 @@ class HotelCommentController extends Controller
         return $this->successResponse($comment, "Comment created successfully", 201);
     }
 
-    /**
-     * Display the specified hotel comment.
-     *
-     * @param int $hotel_id
-     * @return JsonResponse
-     */
-    public function show(Request $request,int $hotel_id): JsonResponse
+    public function show(Request $request, int $hotel_id): JsonResponse
     {
         $perPage = $request->query('per_page', 5);
+        $user_id = (int)$request->query('user_id');
+
+
         // Retrieve comments for the specified hotel, including their replies
         $comments = HotelComment::where('hotel_id', $hotel_id)
             ->orderBy('created_at', 'desc') // Order by most recent
@@ -93,49 +55,45 @@ class HotelCommentController extends Controller
             }])
             ->paginate($perPage);
 
-
         if ($comments->isEmpty()) {
             return $this->errorResponse("No comments found for this hotel", 404);
         }
 
         // Format the created_at timestamp for each comment and move user fields to the same level
-        $comments->transform(function ($comment) {
-            // Create a new variable for the formatted created_at
-            $formattedCreatedAt = $comment->created_at->diffForHumans([
+        $comments->getCollection()->transform(function ($comment) use ($user_id) {
+            $hotel = Hotel::where('id', $comment->hotel_id)->first();
+            $isCommenter = $user_id === $comment->user_id;
+            $isHotelOwner = $hotel->user_id === $user_id; // Assuming the hotel owner is the same as the user who posted the comment
+            // Format the base comment with additional permissions
+            $comment->commented_at = $comment->created_at->diffForHumans([
                 'parts' => 1,
                 'join' => ', ',
                 'short' => true,
             ]);
-
-            // Add the formatted timestamp to the comment object under a new key
-            $comment->commented_at = $formattedCreatedAt;
-
-            // Include the username and profile_img from the related user model
-            $comment->username = $comment->user->username ?? 'Anonymous'; // Add fallback if user is null
-            $comment->profile_img = $comment->user->profile_img; // Include profile_img if available
-
-            // Unset the 'user' object to keep the response clean
+            $comment->username = $comment->user->username ?? 'Anonymous';
+            $comment->profile_img = $comment->user->profile_img;
+            $comment->can_edit = $isCommenter;
+            $comment->can_delete = $isCommenter || $isHotelOwner;
             unset($comment->user);
-
-            // Process replies
+            // Process replies if they exist
             if ($comment->replies) {
-                $comment->replies->transform(function ($reply) {
-                    $reply->commented_at = $reply->created_at->diffForHumans(); // Format the timestamp for replies
-                    $reply->username = $reply->user->username ?? 'Anonymous'; // Add fallback if user is null
-                    $reply->profile_img = $reply->user->profile_img; // Include profile_img if available
-                    unset($reply->user); // Clean up the response
+                $comment->replies->transform(function ($reply) use ($user_id, $hotel) {
+                    $isCommenter = $user_id === $reply->user_id;
+                    $isHotelOwner = $hotel->user_id === $user_id;
+                    $reply->commented_at = $reply->created_at->diffForHumans();
+                    $reply->username = $reply->user->username ?? 'Anonymous';
+                    $reply->profile_img = $reply->user->profile_img;
+                    $reply->can_delete = $isCommenter || $isHotelOwner;
+                    $reply->can_edit = $isCommenter;
+                    unset($reply->user);
                     return $reply;
                 });
             }
-
-            return $comment; // Return the modified comment
+            return $comment;
         });
-
         $comments = cleanPagination($comments);
-
         return $this->successResponse($comments, "Comments retrieved successfully");
     }
-
 
 
     /**
@@ -182,12 +140,28 @@ class HotelCommentController extends Controller
         return $this->successResponse("Comment updated successfully");
     }
 
-    /**
-     * Remove the specified hotel comment from storage.
-     *
-     * @param int $id
-     * @return JsonResponse
-     */
+
+    public function recent()
+    {
+        $comments = HotelComment::leftJoin('users', 'hotel_comments.user_id', '=', 'users.id')
+            ->orderBy('hotel_comments.star', 'desc')
+            ->orderBy('hotel_comments.created_at', 'desc')
+            ->select('hotel_comments.*', 'users.username', 'users.profile_img') // Specify the columns to select, including username
+            ->paginate(5);
+
+        $comments->getCollection()->transform(function ($comment) {
+            $comment->commented_at = $comment->created_at->diffForHumans([
+                'parts' => 1,
+                'join' => ', ',
+                'short' => true,
+            ]);
+            return $comment; // Ensure the modified comment is returned
+        });
+
+        $comments = cleanPagination($comments);
+        return $this->successResponse($comments);
+    }
+
     public function destroy(Request $request): JsonResponse
     {
         // Fetch the authenticated user

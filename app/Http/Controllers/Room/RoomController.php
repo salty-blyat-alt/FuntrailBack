@@ -72,12 +72,14 @@ class RoomController extends Controller
         // Convert the provided dates to the Y-m-d format for querying
         $date_start = Carbon::createFromFormat('d/m/Y', $date_start)->format('Y-m-d');
         $date_end = Carbon::createFromFormat('d/m/Y', $date_end)->format('Y-m-d');
-
+        if ($date_start > $date_end) {
+            return $this->errorResponse('The start date must be before the end date.', 400);
+        }
         // Base query to get all rooms for the hotel
         $rooms = Room::where('hotel_id', $id)->get();
 
         if ($date_start && $date_end) {
-            $bookedRoomIds = Booking::where('hotel_id', $id)
+            $bookedRoomIds = Booking::where('hotel_id', $id)->where('status', 'completed')
                 ->where(function ($query) use ($date_start, $date_end) {
                     $query->where(function ($q) use ($date_start, $date_end) {
                         $q->where('date_start', '<=', $date_end)

@@ -9,10 +9,8 @@ class ProvinceController extends Controller
 {
     public function popular($limit = 10)
     {
-        $provinces = Province::withCount('hotels')
-            ->withCount('restaurants')
-            ->orderBy('hotels_count', 'desc')
-            ->orderBy('restaurants_count', 'desc')
+        $provinces = Province::withCount('hotels') 
+            ->orderBy('hotels_count', 'desc') 
             ->take($limit)
             ->get();
 

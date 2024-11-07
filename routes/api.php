@@ -43,6 +43,7 @@ Route::middleware('auth:sanctum')->prefix('hotel')->group(function () {
     Route::post('update',                   [HotelController::class, 'update']);
     Route::post('delete',                   [HotelController::class, 'destroy']);
     Route::get('show/{id}',                 [HotelController::class, 'show'])->withoutMiddleware('auth:sanctum');
+    Route::get('stat/{id}',                 [HotelController::class, 'stat'])->withoutMiddleware('auth:sanctum');
     Route::get('rooms/{id}',                [RoomController::class, 'rooms'])->withoutMiddleware('auth:sanctum');
     Route::post('add-room',                 [RoomController::class, 'addRooms']);
     Route::post('update-room/{roomId}',     [RoomController::class, 'updateRoom']);
@@ -51,7 +52,7 @@ Route::middleware('auth:sanctum')->prefix('hotel')->group(function () {
 });
 
 Route::get('success/{session_id}', [BookController::class, 'success'])->name('checkout.success');
-Route::get('cancel', [BookController::class, 'cancel'])->name('checkout.cancel');
+Route::get('cancel',                        [BookController::class, 'cancel'])->name('checkout.cancel');
 
 // work done
 Route::middleware('auth:sanctum')->prefix('province')->group(function () {
@@ -72,12 +73,13 @@ Route::middleware('auth:sanctum')->prefix('dashboard')->group(function () {
     Route::get('week',              [StatController::class, 'getTotalSalesThisWeek']);
     Route::get('month',             [StatController::class, 'getTotalSalesThisMonth']);
     Route::get('pending',           [StatController::class, 'pendingOrders']);
+    // for the order history for the hotel owner
     Route::get('history',           [StatController::class, 'ordersHistory']);
 });
 
 Route::prefix('comment')->group(function () {
-    Route::get('list',                       [HotelCommentController::class, 'index']);
     Route::post('create',                    [HotelCommentController::class, 'store'])->middleware('auth:sanctum');
+    Route::get('recent',                     [HotelCommentController::class, 'recent']) ;
     Route::post('update',                    [HotelCommentController::class, 'update'])->middleware('auth:sanctum');
     Route::get('show/{hotel_id}',            [HotelCommentController::class, 'show']);
     Route::post('delete',                    [HotelCommentController::class, 'destroy'])->middleware('auth:sanctum');
@@ -90,5 +92,6 @@ Route::prefix('popular')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->prefix('order')->group(function () {
+    // wokring now for the bookign cart 
     Route::get('history',              [BookingController::class, 'history']);
 });

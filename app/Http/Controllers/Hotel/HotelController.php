@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Hotel;
 use App\Models\Hotel;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\HotelComment;
 use App\Models\Province;
 use App\Models\User;
 use Carbon\Carbon;
@@ -33,12 +34,38 @@ class HotelController extends Controller
             ->leftJoin('users as c', 'c.id', '=', 'h.user_id')
             ->leftJoin('rooms as r', 'r.hotel_id', '=', 'h.id')
             ->leftJoin('provinces as p', 'p.id', '=', 'h.province_id')
+            ->leftJoin('hotel_comments as hc', 'hc.hotel_id', '=', 'h.id')
             ->select(
+                DB::raw('
+                ROUND(
+                    AVG(
+                        CASE 
+                            WHEN hc.star IS NOT NULL THEN hc.star 
+                            ELSE 0 
+                        END
+                    ), 2
+                ) as average_stars
+            '),
+                DB::raw('
+                CASE 
+                    WHEN AVG(hc.star) >= 4.5 THEN "Excellent"
+                    WHEN AVG(hc.star) >= 3.5 THEN "Very Good"
+                    WHEN AVG(hc.star) >= 2.5 THEN "Good"
+                    WHEN AVG(hc.star) >= 1.5 THEN "Fair"
+                    WHEN AVG(hc.star) > 0 THEN "Bad"
+                    ELSE "Unrated"
+                END as rating_label
+            '),  // Rating label based on average star rating
                 'c.username as owner',
                 'p.name as province',
                 'h.*',
+                DB::raw('
+            COUNT(DISTINCT CASE WHEN hc.parent_id IS NULL THEN hc.id END) as total_comments
+        '),
                 DB::raw('CASE WHEN COUNT(r.id) > 0 THEN "available" ELSE "not available" END as is_available')
-            );
+            )
+            ->groupBy('h.id', 'c.username', 'p.name');  // Group by hotel and joined fields
+
 
         // Apply filters if provided
         if ($province_id) {
@@ -324,5 +351,42 @@ class HotelController extends Controller
             ->get();
 
         return $this->successResponse($hotelBookings);
+    }
+
+    public function stat(string $hotelId)
+    {
+        // Retrieve all reviews for the given hotel ID
+        $reviews = HotelComment::where('hotel_id', $hotelId)->get();
+
+        // Calculate total reviews
+        $totalReviews = $reviews->count();
+
+        // Calculate average rating
+        $averageRating = $reviews->avg('star');
+
+        // Rating distribution
+        $ratingDistribution = [
+            ['stars' => 5, 'count' => $reviews->where('star', 5)->count()],
+            ['stars' => 4, 'count' => $reviews->where('star', 4)->count()],
+            ['stars' => 3, 'count' => $reviews->where('star', 3)->count()],
+            ['stars' => 2, 'count' => $reviews->where('star', 2)->count()],
+            ['stars' => 1, 'count' => $reviews->where('star', 1)->count()],
+        ];
+
+        // Calculate percentages for rating distribution
+        foreach ($ratingDistribution as &$distribution) {
+            $distribution['percentage'] = $totalReviews > 0
+                ? round(($distribution['count'] / $totalReviews) * 100)
+                : 0;
+        }
+
+        // Prepare the response data
+        $stats = [
+            'averageRating' => $averageRating,
+            'totalReviews' => $totalReviews,
+            'ratingDistribution' => $ratingDistribution,
+        ];
+
+        return $this->successResponse($stats);
     }
 }
