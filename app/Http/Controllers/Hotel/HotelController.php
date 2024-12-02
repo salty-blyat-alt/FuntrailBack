@@ -112,7 +112,7 @@ class HotelController extends Controller
                 $request->all(),
                 [
                     'user_id'      => $request->user()->id,
-                    'province_id'  => $request->province_id, // Already set as an integer
+                    'province_id'  => $request->province_id,  
                     'phone_number' => $request->user()->phone_number
                 ]
             );
@@ -121,7 +121,7 @@ class HotelController extends Controller
             $validatedData = Validator::make($dataToValidate, $this->hotelRules());
 
             if ($validatedData->fails()) {
-                return $this->errorResponse('Hotel creation failed due to validation errors.', 422, $validatedData->errors());
+                return $this->errorResponse('Hotel creation failed due to validation errors.', 422, $validatedData->errors()->toArray() );
             }
 
             // Check if user already owns a hotel

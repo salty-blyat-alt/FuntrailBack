@@ -52,7 +52,7 @@ abstract class Controller
             'description'   => 'string',
             'thumbnail'     => 'nullable|file|mimes:jpeg,png,jpg',
             'images'        => 'nullable|array',
-            'images.*'      => 'file|mimes:jpeg,png,jpg|max:2048',
+            'images.*'      => 'file|mimes:jpeg,png,jpg',
             'open_at'       => 'required|string',
             'close_at'      => 'required|string',
             'facilities'    => 'nullable|array',

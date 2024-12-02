@@ -55,7 +55,7 @@ Route::get('success/{session_id}', [BookController::class, 'success'])->name('ch
 Route::get('cancel',                        [BookController::class, 'cancel'])->name('checkout.cancel');
 
 // work done
-Route::middleware('auth:sanctum')->prefix('province')->group(function () {
+Route::prefix('province')->group(function () {
     Route::get('list',                      [ProvinceController::class, 'index'])->withoutMiddleware('auth:sanctum');
     Route::post('update/{id}',              [ProvinceController::class, 'update']);
 });

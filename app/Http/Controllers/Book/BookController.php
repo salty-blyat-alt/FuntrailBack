@@ -11,8 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator; 
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class BookController extends Controller
@@ -58,7 +57,7 @@ class BookController extends Controller
         $hotel = Hotel::where('user_id', $customer_id)->first();
         $user_type = $request->user()->user_type;
         $date_end = Carbon::createFromFormat('d/m/Y', $request->date_end)->format('Y-m-d');
-        $uuid = rand(1, 40000); // Use UUID for uniqueness
+        $uuid = rand(1, 40000); 
         $isHotelOwner = ($user_type === 'hotel' && $hotel->user_id === $customer_id && $hotel->id === $hotel_id);
 
 
@@ -108,14 +107,14 @@ class BookController extends Controller
             $room = Room::find($room_id);
             $lineItems[] = [
                 'price_data' => [
-                    'currency' => 'usd',
+                'currency' => 'usd',
                     'product_data' => [
-                        'name' => "Room: {$room->room_type}", // Use a meaningful name
+                        'name' => "Room: {$room->room_type}", 
                         'description' => "Booking for room type: {$room->room_type}", // Option
                     ],
-                    'unit_amount' => $total_cost * 100, // Convert to cents
+                    'unit_amount' => $total_cost * 100, 
                 ],
-                'quantity' => 1, // Assuming one of each room
+                'quantity' => 1, 
             ];
         }
 
